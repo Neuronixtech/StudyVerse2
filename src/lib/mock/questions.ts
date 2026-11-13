@@ -1,0 +1,395 @@
+import type { Question, SubjectId } from "../types";
+
+type Difficulty = Question["difficulty"];
+
+function opts(id: string, texts: string[]) {
+  return texts.map((text, i) => ({ id: `${id}-${String.fromCharCode(97 + i)}`, text }));
+}
+
+function single(
+  id: string,
+  subjectId: SubjectId,
+  text: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+  difficulty: Difficulty = "Medium",
+): Question {
+  const o = opts(id, options);
+  return { id, type: "single", subjectId, text, options: o, correctOptionIds: [o[correct].id], explanation, difficulty };
+}
+
+function multi(
+  id: string,
+  subjectId: SubjectId,
+  text: string,
+  options: string[],
+  correct: number[],
+  explanation: string,
+  difficulty: Difficulty = "Medium",
+): Question {
+  const o = opts(id, options);
+  return {
+    id,
+    type: "multi",
+    subjectId,
+    text,
+    options: o,
+    correctOptionIds: correct.map((i) => o[i].id),
+    explanation,
+    difficulty,
+  };
+}
+
+function numerical(
+  id: string,
+  subjectId: SubjectId,
+  text: string,
+  value: number,
+  explanation: string,
+  { tolerance = 0, precision = 0, allowNegative = false, difficulty = "Medium" as Difficulty } = {},
+): Question {
+  return {
+    id,
+    type: "numerical",
+    subjectId,
+    text,
+    options: [],
+    correctOptionIds: [],
+    numerical: { value, tolerance, precision, allowNegative },
+    explanation,
+    difficulty,
+  };
+}
+
+/* ------------------------------ Physics ------------------------------ */
+
+export const P = {
+  p1: single(
+    "q-p1",
+    "physics",
+    "A particle moves along a straight line with velocity v = (3t² − 6t) m/s, where t is in seconds. What is the displacement of the particle between t = 0 s and t = 3 s?",
+    ["0 m", "4 m", "8 m", "9 m"],
+    0,
+    "Integrating, x(t) = t³ − 3t². So x(3) − x(0) = (27 − 27) − 0 = 0 m. The particle moves backwards and then returns to its starting point.",
+    "Medium",
+  ),
+  p2: single(
+    "q-p2",
+    "physics",
+    "A ball is projected with a speed of 20 m/s at an angle of 30° above the horizontal. Taking g = 10 m/s², the maximum height reached by the ball is:",
+    ["5 m", "10 m", "15 m", "20 m"],
+    0,
+    "H = u² sin²θ / 2g = (400 × 0.25) / 20 = 5 m.",
+    "Easy",
+  ),
+  p3: numerical(
+    "q-p3",
+    "physics",
+    "A block of mass 2 kg rests on a frictionless horizontal surface. A horizontal force of 10 N acts on it. Find the acceleration of the block (in m/s²).",
+    5,
+    "From Newton's second law, a = F / m = 10 / 2 = 5 m/s².",
+    { difficulty: "Easy" },
+  ),
+  p4: multi(
+    "q-p4",
+    "physics",
+    "Which of the following physical quantities are vectors?",
+    ["Displacement", "Speed", "Linear momentum", "Torque"],
+    [0, 2, 3],
+    "Displacement, momentum (p = mv) and torque (τ = r × F) have both magnitude and direction. Speed is the magnitude of velocity and is a scalar.",
+    "Easy",
+  ),
+  p5: single(
+    "q-p5",
+    "physics",
+    "The dimensional formula of Planck's constant h is:",
+    ["[M L² T⁻¹]", "[M L T⁻¹]", "[M L² T⁻²]", "[M L T⁻²]"],
+    0,
+    "E = hν, so h = E/ν. Energy has dimensions [M L² T⁻²] and frequency [T⁻¹], giving [M L² T⁻¹].",
+    "Easy",
+  ),
+  p6: numerical(
+    "q-p6",
+    "physics",
+    "A stone is dropped from rest from a height of 45 m. Taking g = 10 m/s², find the time (in seconds) it takes to reach the ground.",
+    3,
+    "h = ½gt² ⇒ t = √(2h/g) = √(90/10) = √9 = 3 s.",
+    { difficulty: "Easy" },
+  ),
+  p7: single(
+    "q-p7",
+    "physics",
+    "Two resistors of 4 Ω and 12 Ω are connected in parallel. The equivalent resistance of the combination is:",
+    ["3 Ω", "8 Ω", "16 Ω", "0.33 Ω"],
+    0,
+    "1/R = 1/4 + 1/12 = 4/12 ⇒ R = 3 Ω.",
+    "Easy",
+  ),
+  p8: multi(
+    "q-p8",
+    "physics",
+    "For a particle in uniform circular motion, which of the following statements are correct?",
+    [
+      "Its speed remains constant",
+      "Its velocity remains constant",
+      "Its acceleration is directed towards the centre",
+      "Work done by the centripetal force over one revolution is zero",
+    ],
+    [0, 2, 3],
+    "Speed is constant but direction changes, so velocity is not constant. Centripetal acceleration points to the centre and the centripetal force is always perpendicular to displacement, so it does no work.",
+    "Medium",
+  ),
+  p9: numerical(
+    "q-p9",
+    "physics",
+    "Two point charges of +2 μC and +8 μC are placed 0.3 m apart in vacuum. Find the magnitude of the electrostatic force between them (in newton). Take k = 9 × 10⁹ N m² C⁻². Answer up to one decimal place.",
+    1.6,
+    "F = kq₁q₂/r² = (9 × 10⁹ × 2 × 10⁻⁶ × 8 × 10⁻⁶) / 0.09 = 0.144 / 0.09 = 1.6 N.",
+    { tolerance: 0.05, precision: 1, difficulty: "Medium" },
+  ),
+  p10: single(
+    "q-p10",
+    "physics",
+    "A spring of spring constant 200 N/m is compressed by 10 cm. The elastic potential energy stored in the spring is:",
+    ["1 J", "2 J", "10 J", "20 J"],
+    0,
+    "U = ½kx² = ½ × 200 × (0.1)² = 1 J.",
+    "Easy",
+  ),
+  p11: single(
+    "q-p11",
+    "physics",
+    "The escape velocity from the surface of the Earth is approximately:",
+    ["11.2 km/s", "7.9 km/s", "9.8 km/s", "3.0 km/s"],
+    0,
+    "vₑ = √(2gR) ≈ √(2 × 9.8 × 6.4 × 10⁶) ≈ 11.2 km/s. (7.9 km/s is the orbital velocity near the surface.)",
+    "Easy",
+  ),
+  p12: numerical(
+    "q-p12",
+    "physics",
+    "A car starts from rest and accelerates uniformly to 20 m/s in 5 s. Find the distance travelled (in metres) in this interval.",
+    50,
+    "a = 20/5 = 4 m/s². s = ½at² = ½ × 4 × 25 = 50 m.",
+    { difficulty: "Easy" },
+  ),
+};
+
+/* ----------------------------- Chemistry ----------------------------- */
+
+export const C = {
+  c1: single(
+    "q-c1",
+    "chemistry",
+    "The IUPAC name of CH₃–CH(CH₃)–CH₂–OH is:",
+    ["2-Methylpropan-1-ol", "Butan-1-ol", "2-Methylpropan-2-ol", "Butan-2-ol"],
+    0,
+    "The longest chain containing the –OH group has three carbons with a methyl branch at C-2 and –OH at C-1: 2-methylpropan-1-ol.",
+    "Easy",
+  ),
+  c2: single(
+    "q-c2",
+    "chemistry",
+    "Which of the following elements has the highest first ionisation enthalpy?",
+    ["Boron", "Carbon", "Nitrogen", "Oxygen"],
+    2,
+    "Nitrogen has a stable half-filled 2p³ configuration, so removing an electron needs more energy than for oxygen (2p⁴).",
+    "Medium",
+  ),
+  c3: numerical(
+    "q-c3",
+    "chemistry",
+    "How many moles of CO₂ are present in 22 g of carbon dioxide? (Molar mass of CO₂ = 44 g/mol). Answer up to one decimal place.",
+    0.5,
+    "n = mass / molar mass = 22 / 44 = 0.5 mol.",
+    { tolerance: 0.01, precision: 1, difficulty: "Easy" },
+  ),
+  c4: multi(
+    "q-c4",
+    "chemistry",
+    "Which of the following species are aromatic?",
+    ["Benzene", "Cyclooctatetraene", "Pyridine", "Cyclopentadienyl anion"],
+    [0, 2, 3],
+    "Benzene, pyridine and the cyclopentadienyl anion are planar, cyclic, fully conjugated with 6 π electrons (4n + 2, n = 1). Cyclooctatetraene is non-planar (tub-shaped) with 8 π electrons.",
+    "Medium",
+  ),
+  c5: single(
+    "q-c5",
+    "chemistry",
+    "The hybridisation of carbon atoms in ethyne (C₂H₂) is:",
+    ["sp", "sp²", "sp³", "sp³d"],
+    0,
+    "Each carbon forms one σ bond to H and a triple bond (one σ + two π) to the other carbon — two σ bonds in total, so sp hybridised.",
+    "Easy",
+  ),
+  c6: numerical(
+    "q-c6",
+    "chemistry",
+    "Calculate the pH of a 0.001 M aqueous solution of HCl (assume complete dissociation).",
+    3,
+    "[H⁺] = 10⁻³ M, so pH = −log(10⁻³) = 3.",
+    { difficulty: "Easy" },
+  ),
+  c7: single(
+    "q-c7",
+    "chemistry",
+    "The shape of the SF₄ molecule is:",
+    ["See-saw", "Tetrahedral", "Square planar", "Trigonal bipyramidal"],
+    0,
+    "S has 4 bond pairs and 1 lone pair (sp³d). The lone pair occupies an equatorial position, giving a see-saw shape.",
+    "Medium",
+  ),
+  c8: multi(
+    "q-c8",
+    "chemistry",
+    "Which of the following compounds can show geometrical (cis–trans) isomerism?",
+    ["But-2-ene", "Propene", "1,2-Dichloroethene", "2-Methylpropene"],
+    [0, 2],
+    "Geometrical isomerism needs two different groups on each doubly bonded carbon. Propene and 2-methylpropene each have a carbon with two identical groups (H, H or CH₃, CH₃).",
+    "Medium",
+  ),
+  c9: numerical(
+    "q-c9",
+    "chemistry",
+    "What is the oxidation state of manganese in KMnO₄? (Enter the magnitude as an integer.)",
+    7,
+    "(+1) + x + 4(−2) = 0 ⇒ x = +7.",
+    { difficulty: "Easy" },
+  ),
+  c10: single(
+    "q-c10",
+    "chemistry",
+    "Which of the following is the strongest acid?",
+    ["CH₃COOH", "ClCH₂COOH", "Cl₂CHCOOH", "Cl₃CCOOH"],
+    3,
+    "Each chlorine withdraws electron density (−I effect), stabilising the carboxylate anion. Trichloroacetic acid has the greatest stabilisation.",
+    "Medium",
+  ),
+  c11: single(
+    "q-c11",
+    "chemistry",
+    "The number of unpaired electrons in the Fe³⁺ ion is:",
+    ["3", "4", "5", "6"],
+    2,
+    "Fe: [Ar] 3d⁶ 4s². Fe³⁺: [Ar] 3d⁵ — five unpaired electrons.",
+    "Easy",
+  ),
+  c12: numerical(
+    "q-c12",
+    "chemistry",
+    "What volume (in litres) is occupied by 2 moles of an ideal gas at STP? (Take molar volume = 22.4 L/mol.) Answer up to one decimal place.",
+    44.8,
+    "V = n × 22.4 = 2 × 22.4 = 44.8 L.",
+    { tolerance: 0.1, precision: 1, difficulty: "Easy" },
+  ),
+};
+
+/* ---------------------------- Mathematics ---------------------------- */
+
+export const M = {
+  m1: single(
+    "q-m1",
+    "mathematics",
+    "Evaluate: lim (x → 0) (sin 3x) / x",
+    ["0", "1", "3", "Does not exist"],
+    2,
+    "lim (sin 3x)/x = 3 · lim (sin 3x)/(3x) = 3 × 1 = 3.",
+    "Easy",
+  ),
+  m2: single(
+    "q-m2",
+    "mathematics",
+    "The derivative of x²·eˣ with respect to x is:",
+    ["x²·eˣ", "2x·eˣ", "eˣ(x² + 2x)", "eˣ(x² + 2)"],
+    2,
+    "Product rule: d/dx(x²eˣ) = 2x·eˣ + x²·eˣ = eˣ(x² + 2x).",
+    "Easy",
+  ),
+  m3: numerical(
+    "q-m3",
+    "mathematics",
+    "Evaluate the definite integral ∫₀² 3x² dx.",
+    8,
+    "∫3x² dx = x³. Evaluating from 0 to 2 gives 8 − 0 = 8.",
+    { difficulty: "Easy" },
+  ),
+  m4: multi(
+    "q-m4",
+    "mathematics",
+    "Which of the following functions are continuous at x = 0?",
+    ["f(x) = |x|", "f(x) = ⌊x⌋ (greatest integer function)", "f(x) = eˣ", "f(x) = x·sin x"],
+    [0, 2, 3],
+    "|x|, eˣ and x·sin x are continuous everywhere. ⌊x⌋ jumps from −1 to 0 at x = 0, so it is discontinuous there.",
+    "Medium",
+  ),
+  m5: single(
+    "q-m5",
+    "mathematics",
+    "The distance between the points (1, 2) and (4, 6) is:",
+    ["3", "4", "5", "7"],
+    2,
+    "d = √[(4 − 1)² + (6 − 2)²] = √(9 + 16) = 5.",
+    "Easy",
+  ),
+  m6: numerical(
+    "q-m6",
+    "mathematics",
+    "If α and β are the roots of x² − 5x + 6 = 0, find the value of α² + β².",
+    13,
+    "α + β = 5, αβ = 6. α² + β² = (α + β)² − 2αβ = 25 − 12 = 13.",
+    { difficulty: "Easy" },
+  ),
+  m7: single(
+    "q-m7",
+    "mathematics",
+    "The slope of the line 3x − 4y + 7 = 0 is:",
+    ["3/4", "−3/4", "4/3", "−4/3"],
+    0,
+    "Rewrite as y = (3/4)x + 7/4. The slope is 3/4.",
+    "Easy",
+  ),
+  m8: multi(
+    "q-m8",
+    "mathematics",
+    "For the matrix A = [[2, 0], [0, 3]], which of the following statements are true?",
+    ["det(A) = 6", "A is symmetric", "A is singular", "trace(A) = 5"],
+    [0, 1, 3],
+    "det(A) = 2 × 3 = 6 ≠ 0, so A is non-singular. A = Aᵀ, so it is symmetric. trace(A) = 2 + 3 = 5.",
+    "Medium",
+  ),
+  m9: numerical(
+    "q-m9",
+    "mathematics",
+    "Find the number of distinct arrangements of the letters of the word LEVEL.",
+    30,
+    "5 letters with L repeated twice and E repeated twice: 5! / (2! · 2!) = 120 / 4 = 30.",
+    { difficulty: "Medium" },
+  ),
+  m10: single(
+    "q-m10",
+    "mathematics",
+    "The value of sin²30° + cos²60° is:",
+    ["0", "1/2", "1", "3/4"],
+    1,
+    "sin 30° = cos 60° = 1/2. So 1/4 + 1/4 = 1/2.",
+    "Easy",
+  ),
+  m11: single(
+    "q-m11",
+    "mathematics",
+    "The sum of the first 20 natural numbers is:",
+    ["190", "200", "210", "220"],
+    2,
+    "n(n + 1)/2 = 20 × 21 / 2 = 210.",
+    "Easy",
+  ),
+  m12: numerical(
+    "q-m12",
+    "mathematics",
+    "Two fair dice are thrown. Find the probability that the sum of the numbers obtained is 7. Give your answer correct to two decimal places.",
+    0.17,
+    "Favourable outcomes: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1) = 6 of 36. P = 1/6 ≈ 0.17.",
+    { tolerance: 0.005, precision: 2, difficulty: "Medium" },
+  ),
+};
