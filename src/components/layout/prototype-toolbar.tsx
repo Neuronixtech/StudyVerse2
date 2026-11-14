@@ -32,7 +32,7 @@ export function PrototypeToolbar({ sidebarOffset }: { sidebarOffset?: boolean } 
           <div
             role="dialog"
             aria-label="Prototype controls"
-            className="w-[min(22rem,calc(100vw-2rem))] animate-slide-up overflow-hidden rounded-2xl border border-line bg-white shadow-2xl"
+            className="w-[min(22rem,calc(100vw-2rem))] animate-slide-up overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl"
           >
             <div className="flex items-center justify-between bg-ink px-4 py-3 text-white">
               <p className="flex items-center gap-2 text-sm font-bold">
@@ -43,7 +43,7 @@ export function PrototypeToolbar({ sidebarOffset }: { sidebarOffset?: boolean } 
               </button>
             </div>
             <div className="max-h-[70dvh] space-y-5 overflow-y-auto p-4">
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 ring-1 ring-amber-200">
+              <p className="rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:text-amber-100 ring-1 ring-amber-200 dark:ring-amber-500/30">
                 UI prototype with mock data. Sign-in, payments and approvals are simulated and saved only in this browser. Open the admin console in another tab to see learner screens update live.
               </p>
 
@@ -102,7 +102,7 @@ export function PrototypeToolbar({ sidebarOffset }: { sidebarOffset?: boolean } 
                     </SmallToggle>
                   ))}
                 </div>
-                <Link href="/admin" className="mt-2 inline-block text-xs font-semibold text-brand-700 hover:underline" onClick={() => setOpen(false)}>
+                <Link href="/admin" className="mt-2 inline-block text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline" onClick={() => setOpen(false)}>
                   Open admin console →
                 </Link>
               </section>
@@ -173,15 +173,15 @@ function PersonaButton({ active, onClick, label, hint, dot }: { active: boolean;
       aria-pressed={active}
       className={cn(
         "flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
-        active ? "border-brand-500 bg-brand-50" : "border-line hover:border-brand-200 hover:bg-slate-50",
+        active ? "border-brand-500 bg-brand-50 dark:bg-brand-400/10" : "border-line hover:border-brand-200 dark:hover:border-brand-400/30 hover:bg-slate-50",
       )}
     >
       <span className={cn("size-2 shrink-0 rounded-full", dot)} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-ink">{label}</span>
+        <span className="block truncate text-sm font-semibold text-fg">{label}</span>
         <span className="block text-xs text-slate-500">{hint}</span>
       </span>
-      {active && <span className="text-[10px] font-bold tracking-wide text-brand-700 uppercase">Current</span>}
+      {active && <span className="text-[10px] font-bold tracking-wide text-brand-700 dark:text-brand-300 uppercase">Current</span>}
     </button>
   );
 }
@@ -194,7 +194,7 @@ function SmallToggle({ active, onClick, children }: { active: boolean; onClick: 
       aria-pressed={active}
       className={cn(
         "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
-        active ? "border-brand-500 bg-brand-50 text-brand-800" : "border-line text-slate-600 hover:bg-slate-50",
+        active ? "border-brand-500 bg-brand-50 dark:bg-brand-400/10 text-brand-800 dark:text-brand-200" : "border-line text-slate-600 hover:bg-slate-50",
       )}
     >
       {children}

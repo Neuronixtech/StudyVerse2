@@ -129,7 +129,7 @@ export function CourseDetail({ slug }: { slug: string }) {
 
           {/* Access card */}
           <div className="lg:row-span-2">
-            <div className="overflow-hidden rounded-2xl bg-white text-slate-600 shadow-2xl lg:sticky lg:top-24">
+            <div className="overflow-hidden rounded-2xl bg-surface text-slate-600 shadow-2xl lg:sticky lg:top-24">
               <div className="relative">
                 <CourseThumb theme={course.theme} subjectIds={course.subjectIds} size="lg" className="aspect-video" title={course.title} />
                 {stats.preview && (
@@ -139,7 +139,7 @@ export function CourseDetail({ slug }: { slug: string }) {
                     className="absolute inset-0 grid place-items-center bg-ink/10 transition-colors hover:bg-ink/25"
                     aria-label={`Watch free preview: ${stats.preview.title}`}
                   >
-                    <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-brand-700 shadow-lg">
+                    <span className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-bold text-brand-700 dark:text-brand-300 shadow-lg">
                       <CirclePlay className="size-5" /> Watch free preview
                     </span>
                   </button>
@@ -162,7 +162,7 @@ export function CourseDetail({ slug }: { slug: string }) {
                           <span>
                             {progress.completed} of {progress.total} lessons watched
                           </span>
-                          <span className="text-brand-700">{progress.percent}%</span>
+                          <span className="text-brand-700 dark:text-brand-300">{progress.percent}%</span>
                         </div>
                         <ProgressBar value={progress.percent} label="Course progress" />
                       </div>
@@ -186,18 +186,18 @@ export function CourseDetail({ slug }: { slug: string }) {
                 )}
                 <ul className="mt-5 space-y-2.5 border-t border-line pt-5 text-sm">
                   <li className="flex items-center gap-2.5">
-                    <Layers className="size-4 text-brand-600" /> {stats.moduleCount} modules · {stats.lessonCount} lessons
+                    <Layers className="size-4 text-brand-600 dark:text-brand-400" /> {stats.moduleCount} modules · {stats.lessonCount} lessons
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <Clock className="size-4 text-brand-600" /> {formatHoursMinutes(stats.totalSec)} of video
+                    <Clock className="size-4 text-brand-600 dark:text-brand-400" /> {formatHoursMinutes(stats.totalSec)} of video
                   </li>
                   {linkedTests.length > 0 && (
                     <li className="flex items-center gap-2.5">
-                      <FileQuestion className="size-4 text-brand-600" /> {linkedTests.length} linked practice test{linkedTests.length > 1 ? "s" : ""}
+                      <FileQuestion className="size-4 text-brand-600 dark:text-brand-400" /> {linkedTests.length} linked practice test{linkedTests.length > 1 ? "s" : ""}
                     </li>
                   )}
                   <li className="flex items-center gap-2.5">
-                    <MonitorSmartphone className="size-4 text-brand-600" /> Watch on mobile, tablet & desktop
+                    <MonitorSmartphone className="size-4 text-brand-600 dark:text-brand-400" /> Watch on mobile, tablet & desktop
                   </li>
                 </ul>
               </div>
@@ -215,7 +215,7 @@ export function CourseDetail({ slug }: { slug: string }) {
             <ul className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-line bg-mist p-5 sm:grid-cols-2">
               {course.highlights.map((h) => (
                 <li key={h} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <Check className="mt-0.5 size-4 shrink-0 text-brand-600" /> {h}
+                  <Check className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" /> {h}
                 </li>
               ))}
             </ul>
@@ -233,13 +233,13 @@ export function CourseDetail({ slug }: { slug: string }) {
               </div>
               <button
                 type="button"
-                className="text-sm font-semibold text-brand-700 hover:underline"
+                className="text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline"
                 onClick={() => setOpenModules(expanded.length === course.modules.length ? [] : course.modules.map((m) => m.id))}
               >
                 {expanded.length === course.modules.length ? "Collapse all" : "Expand all"}
               </button>
             </div>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-surface">
               {course.modules.map((m, mi) => {
                 const isOpen = expanded.includes(m.id);
                 const done = m.lessons.filter((l) => completedIds.has(l.id)).length;
@@ -252,12 +252,12 @@ export function CourseDetail({ slug }: { slug: string }) {
                         onClick={() => setOpenModules(isOpen ? expanded.filter((x) => x !== m.id) : [...expanded, m.id])}
                         className="flex w-full items-center gap-4 bg-slate-50/70 px-5 py-4 text-left hover:bg-slate-50"
                       >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-100 text-sm font-extrabold text-brand-700">{mi + 1}</span>
+                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-100 dark:bg-brand-400/15 text-sm font-extrabold text-brand-700 dark:text-brand-300">{mi + 1}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-bold text-ink">{m.title}</span>
+                          <span className="block text-sm font-bold text-fg">{m.title}</span>
                           <span className="text-xs text-slate-500">
                             {m.lessons.length} lessons · {formatHoursMinutes(m.lessons.reduce((a, l) => a + l.durationSec, 0))}
-                            {learner && done > 0 && <span className="ml-1.5 font-semibold text-brand-700">· {done} completed</span>}
+                            {learner && done > 0 && <span className="ml-1.5 font-semibold text-brand-700 dark:text-brand-300">· {done} completed</span>}
                           </span>
                         </span>
                         <span className={cn("text-slate-400 transition-transform", isOpen && "rotate-180")} aria-hidden>
@@ -275,9 +275,9 @@ export function CourseDetail({ slug }: { slug: string }) {
                               <button
                                 type="button"
                                 onClick={() => openLesson(l)}
-                                className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-brand-50/50"
+                                className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-brand-50/50 dark:hover:bg-brand-400/10"
                               >
-                                <span className={cn("shrink-0", completed ? "text-emerald-600" : can ? "text-brand-600" : "text-slate-400")}>
+                                <span className={cn("shrink-0", completed ? "text-emerald-600 dark:text-emerald-400" : can ? "text-brand-600 dark:text-brand-400" : "text-slate-400")}>
                                   {completed ? <CircleCheck className="size-5" /> : can ? <CirclePlay className="size-5" /> : <Lock className="size-5" />}
                                 </span>
                                 <span className="min-w-0 flex-1 text-sm font-medium text-slate-700">{l.title}</span>
@@ -313,7 +313,7 @@ export function CourseDetail({ slug }: { slug: string }) {
             <Card className="mt-4 flex items-center gap-4 p-5">
               <Avatar name={course.instructor.name} size="xl" />
               <div>
-                <p className="text-base font-bold text-ink">{course.instructor.name}</p>
+                <p className="text-base font-bold text-fg">{course.instructor.name}</p>
                 <p className="text-sm text-slate-500">{course.instructor.title}</p>
                 <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
                   <Star className="size-4 fill-amber-400 text-amber-400" /> {course.rating.toFixed(1)} instructor rating
@@ -329,12 +329,12 @@ export function CourseDetail({ slug }: { slug: string }) {
               Practise this course
             </h2>
             {linkedTests.map((t) => (
-              <Link key={t.id} href={`/tests/${t.id}`} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4 shadow-card transition-colors hover:border-brand-300">
-                <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-700">
+              <Link key={t.id} href={`/tests/${t.id}`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card transition-colors hover:border-brand-300">
+                <span className="grid size-10 place-items-center rounded-xl bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300">
                   <FileQuestion className="size-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-ink">{t.title}</span>
+                  <span className="block text-sm font-bold text-fg">{t.title}</span>
                   <span className="text-xs text-slate-500">{t.sections.reduce((a, s) => a + s.questions.length, 0)} questions · {t.durationMin} min</span>
                 </span>
                 {!active && <Lock className="size-4 text-slate-400" />}
@@ -349,7 +349,7 @@ export function CourseDetail({ slug }: { slug: string }) {
         {stats.preview && (
           <p className="mt-4 border-t border-line pt-4 text-sm text-slate-500">
             Meanwhile, watch the free preview:{" "}
-            <Link href={`/learn/${course.slug}/${stats.preview.id}`} className="font-semibold text-brand-700 hover:underline">
+            <Link href={`/learn/${course.slug}/${stats.preview.id}`} className="font-semibold text-brand-700 dark:text-brand-300 hover:underline">
               {stats.preview.title}
             </Link>
           </p>

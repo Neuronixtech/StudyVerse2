@@ -45,7 +45,7 @@ export function ScoreDonut({ score, max, size = 160 }: { score: number; max: num
         transform="rotate(-90 50 50)"
         className="text-brand-500 transition-[stroke-dasharray] duration-700"
       />
-      <text x="50" y="47" textAnchor="middle" className="fill-ink text-[18px] font-extrabold">
+      <text x="50" y="47" textAnchor="middle" className="fill-fg text-[18px] font-extrabold">
         {score}
       </text>
       <text x="50" y="62" textAnchor="middle" className="fill-slate-400 text-[9px] font-semibold">
@@ -157,7 +157,7 @@ export function ResultView({ attemptId }: { attemptId: string }) {
             <ScoreDonut score={r.score} max={r.maxScore} />
             <div className="w-full flex-1">
               <p className="text-sm font-semibold text-slate-500">Your score</p>
-              <p className="text-4xl font-extrabold tracking-tight text-ink">
+              <p className="text-4xl font-extrabold tracking-tight text-fg">
                 {r.score}
                 <span className="text-xl font-bold text-slate-400"> / {r.maxScore}</span>
               </p>
@@ -167,13 +167,13 @@ export function ResultView({ attemptId }: { attemptId: string }) {
                   <dt className="flex items-center gap-1.5 text-xs text-slate-500">
                     <Target className="size-3.5" /> Accuracy
                   </dt>
-                  <dd className="text-lg font-extrabold text-ink">{accuracy}%</dd>
+                  <dd className="text-lg font-extrabold text-fg">{accuracy}%</dd>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3">
                   <dt className="flex items-center gap-1.5 text-xs text-slate-500">
                     <Clock className="size-3.5" /> Time taken
                   </dt>
-                  <dd className="text-lg font-extrabold text-ink">{formatDuration(attempt.timeTakenSec)}</dd>
+                  <dd className="text-lg font-extrabold text-fg">{formatDuration(attempt.timeTakenSec)}</dd>
                 </div>
               </dl>
               {best && history.length > 1 && (
@@ -187,14 +187,14 @@ export function ResultView({ attemptId }: { attemptId: string }) {
 
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: "Correct", value: r.correct, icon: <CircleCheck />, cls: "bg-emerald-50 text-emerald-700" },
-              { label: "Incorrect", value: r.incorrect, icon: <CircleX />, cls: "bg-red-50 text-red-700" },
-              { label: "Partially correct", value: r.partial, icon: <CircleMinus />, cls: "bg-amber-50 text-amber-700" },
+              { label: "Correct", value: r.correct, icon: <CircleCheck />, cls: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+              { label: "Incorrect", value: r.incorrect, icon: <CircleX />, cls: "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300" },
+              { label: "Partially correct", value: r.partial, icon: <CircleMinus />, cls: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300" },
               { label: "Unattempted", value: r.unattempted, icon: <CircleMinus />, cls: "bg-slate-100 text-slate-600" },
             ].map((s) => (
-              <div key={s.label} className="rounded-2xl border border-line bg-white p-5 shadow-card">
+              <div key={s.label} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
                 <span className={cn("grid size-10 place-items-center rounded-xl [&_svg]:size-5", s.cls)}>{s.icon}</span>
-                <p className="mt-3 text-3xl font-extrabold text-ink">{s.value}</p>
+                <p className="mt-3 text-3xl font-extrabold text-fg">{s.value}</p>
                 <p className="text-sm text-slate-500">{s.label}</p>
               </div>
             ))}
@@ -218,14 +218,14 @@ export function ResultView({ attemptId }: { attemptId: string }) {
               <tbody>
                 {r.sections.map((s) => (
                   <tr key={s.sectionId} className="border-t border-line">
-                    <td className="px-5 py-3 font-semibold text-ink">{s.name}</td>
-                    <td className="px-3 py-3 text-center font-semibold text-emerald-700">{s.correct}</td>
-                    <td className="px-3 py-3 text-center font-semibold text-red-600">{s.incorrect}</td>
-                    <td className="px-3 py-3 text-center font-semibold text-amber-700">{s.partial}</td>
+                    <td className="px-5 py-3 font-semibold text-fg">{s.name}</td>
+                    <td className="px-3 py-3 text-center font-semibold text-emerald-700 dark:text-emerald-300">{s.correct}</td>
+                    <td className="px-3 py-3 text-center font-semibold text-red-600 dark:text-red-400">{s.incorrect}</td>
+                    <td className="px-3 py-3 text-center font-semibold text-amber-700 dark:text-amber-300">{s.partial}</td>
                     <td className="px-3 py-3 text-center text-slate-500">{s.unattempted}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <span className="w-14 font-bold text-ink">
+                        <span className="w-14 font-bold text-fg">
                           {s.score}/{s.maxScore}
                         </span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
@@ -261,7 +261,7 @@ export function ResultView({ attemptId }: { attemptId: string }) {
                 <History /> Attempt history
               </ButtonLink>
             )}
-            <Link href="/tests" className="inline-flex items-center px-2 text-sm font-semibold text-brand-700 hover:underline">
+            <Link href="/tests" className="inline-flex items-center px-2 text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
               More tests
             </Link>
           </div>

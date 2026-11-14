@@ -95,7 +95,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
           </>
         ) : (
           <>
-            <Button variant="secondary" onClick={() => setMode("reject")} className="text-red-600">
+            <Button variant="secondary" onClick={() => setMode("reject")} className="text-red-600 dark:text-red-400">
               <CircleX /> Reject
             </Button>
             <Button onClick={() => setMode("approve")} className="bg-emerald-600 hover:bg-emerald-700">
@@ -110,14 +110,14 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
           <div className="flex items-center gap-3">
             <Avatar name={learner?.name ?? "?"} size="lg" />
             <div className="min-w-0">
-              <p className="font-bold text-ink">{learner?.name}</p>
+              <p className="font-bold text-fg">{learner?.name}</p>
               <p className="truncate text-xs text-slate-500">{learner?.email}</p>
               <p className="text-xs text-slate-500">{learner?.phone}</p>
             </div>
           </div>
           <div className="rounded-xl bg-slate-50 p-3 text-sm">
             <p className="text-xs font-semibold text-slate-500">Current subscription</p>
-            <p className="mt-0.5 font-semibold text-ink">
+            <p className="mt-0.5 font-semibold text-fg">
               {sub.status === "active" ? `Active until ${formatDate(sub.expiresAt!)}` : sub.status === "expired" ? `Expired on ${formatDate(sub.expiresAt!)}` : "No subscription yet"}
             </p>
           </div>
@@ -126,7 +126,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
             <Row
               k="Amount paid"
               v={
-                <span className={cn(plan && req.amount !== plan.price && "text-red-600")}>
+                <span className={cn(plan && req.amount !== plan.price && "text-red-600 dark:text-red-400")}>
                   {formatINR(req.amount)}
                   {plan && req.amount !== plan.price && " · mismatch"}
                 </span>
@@ -139,7 +139,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
                 <button
                   type="button"
                   onClick={() => navigator.clipboard?.writeText(req.reference).then(() => toast({ title: "Reference copied", tone: "info" }))}
-                  className="inline-flex items-center gap-1.5 font-mono hover:text-brand-700"
+                  className="inline-flex items-center gap-1.5 font-mono hover:text-brand-700 dark:hover:text-brand-300"
                   title="Copy reference"
                 >
                   {req.reference} <Copy className="size-3.5" />
@@ -148,7 +148,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
             />
           </dl>
           {req.note && (
-            <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900 ring-1 ring-sky-200">
+            <p className="rounded-lg bg-sky-50 dark:bg-sky-500/10 px-3 py-2 text-xs text-sky-900 dark:text-sky-100 ring-1 ring-sky-200 dark:ring-sky-500/30">
               <strong>Learner note:</strong> {req.note}
             </p>
           )}
@@ -160,7 +160,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
             <div className="mt-2 grid aspect-[4/3] place-items-center rounded-xl border border-dashed border-line-strong bg-slate-50 p-4 text-center">
               <div>
                 <FileImage className="mx-auto size-8 text-slate-400" />
-                <p className="mt-2 text-sm font-semibold text-ink">{req.screenshotName}</p>
+                <p className="mt-2 text-sm font-semibold text-fg">{req.screenshotName}</p>
                 <p className="mt-1 text-xs text-slate-500">Preview unavailable — files aren&apos;t uploaded in the prototype.</p>
               </div>
             </div>
@@ -181,8 +181,8 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
       )}
 
       {canAct && mode === "approve" && (
-        <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
-          <p className="text-sm font-bold text-ink">Activation duration</p>
+        <div className="mt-5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/10 p-4">
+          <p className="text-sm font-bold text-fg">Activation duration</p>
           <Segmented
             label="Duration to activate"
             className="mt-2"
@@ -191,18 +191,18 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
             options={state.plans.map((p) => ({ value: String(p.days) as "30" | "90" | "365", label: `${p.days} days` }))}
           />
           <dl className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-            <div className="rounded-lg bg-white p-3 ring-1 ring-emerald-200">
+            <div className="rounded-lg bg-surface p-3 ring-1 ring-emerald-200 dark:ring-emerald-500/30">
               <dt className="text-xs text-slate-500">Starts</dt>
-              <dd className="font-bold text-ink">{formatDate(startsAt)}</dd>
-              {sub.status === "active" && <dd className="text-[11px] text-emerald-700">Extends current expiry</dd>}
+              <dd className="font-bold text-fg">{formatDate(startsAt)}</dd>
+              {sub.status === "active" && <dd className="text-[11px] text-emerald-700 dark:text-emerald-300">Extends current expiry</dd>}
             </div>
-            <div className="rounded-lg bg-white p-3 ring-1 ring-emerald-200">
+            <div className="rounded-lg bg-surface p-3 ring-1 ring-emerald-200 dark:ring-emerald-500/30">
               <dt className="text-xs text-slate-500">New expiry</dt>
-              <dd className="font-bold text-ink">{formatDate(startsAt + chosen * DAY)}</dd>
+              <dd className="font-bold text-fg">{formatDate(startsAt + chosen * DAY)}</dd>
             </div>
           </dl>
           {chosen !== req.planDays && (
-            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-200">
               <TriangleAlert className="size-3.5" /> Different from the {req.planDays} days the learner requested.
             </p>
           )}
@@ -211,8 +211,8 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
       )}
 
       {canAct && mode === "reject" && (
-        <div className="mt-5 rounded-xl border border-red-200 bg-red-50/50 p-4">
-          <label htmlFor="reject-reason" className="text-sm font-bold text-ink">
+        <div className="mt-5 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/10 p-4">
+          <label htmlFor="reject-reason" className="text-sm font-bold text-fg">
             Reason shown to the learner <span className="text-red-500">*</span>
           </label>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -224,7 +224,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
                   setReason(r);
                   setReasonError(null);
                 }}
-                className="rounded-full border border-red-200 bg-white px-2.5 py-1 text-left text-xs text-red-800 hover:bg-red-50"
+                className="rounded-full border border-red-200 dark:border-red-500/30 bg-surface px-2.5 py-1 text-left text-xs text-red-800 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-500/10"
               >
                 {r.split(" — ")[0].split(".")[0]}
               </button>
@@ -242,7 +242,7 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
             aria-invalid={reasonError ? true : undefined}
             placeholder="Explain what's wrong and what the learner should do next"
           />
-          {reasonError && <p className="mt-1.5 text-xs font-semibold text-red-600">{reasonError}</p>}
+          {reasonError && <p className="mt-1.5 text-xs font-semibold text-red-600 dark:text-red-400">{reasonError}</p>}
         </div>
       )}
     </Modal>
@@ -253,7 +253,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="text-slate-500">{k}</dt>
-      <dd className="text-right font-semibold text-ink">{v}</dd>
+      <dd className="text-right font-semibold text-fg">{v}</dd>
     </div>
   );
 }
@@ -362,7 +362,7 @@ export function RequestsPage() {
                 <li key={r.id} className="flex items-center gap-3 p-4">
                   <Avatar name={learnerName(r.learnerId)} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-ink">{learnerName(r.learnerId)}</p>
+                    <p className="truncate text-sm font-bold text-fg">{learnerName(r.learnerId)}</p>
                     <p className="text-xs text-slate-500">
                       {r.planDays}d · {formatINR(r.amount)} · {relativeTime(r.submittedAt, now)}
                     </p>
@@ -388,13 +388,13 @@ function RequestRow({ r, name, email, now, onReview }: { r: SubscriptionRequest;
         <div className="flex items-center gap-3">
           <Avatar name={name} size="sm" />
           <div className="min-w-0">
-            <p className="font-semibold text-ink">{name}</p>
+            <p className="font-semibold text-fg">{name}</p>
             <p className="truncate text-xs text-slate-500">{email}</p>
           </div>
         </div>
       </td>
       <td className="px-3 py-3">{r.planDays} days</td>
-      <td className="px-3 py-3 font-semibold text-ink">
+      <td className="px-3 py-3 font-semibold text-fg">
         {formatINR(r.amount)}
         <span className="block text-xs font-normal text-slate-500">{r.method === "upi" ? "UPI" : "Bank"}</span>
       </td>
@@ -497,7 +497,7 @@ export function SubscriptionsPage() {
                         <div className="flex items-center gap-3">
                           <Avatar name={learner.name} size="sm" />
                           <div>
-                            <p className="font-semibold text-ink">{learner.name}</p>
+                            <p className="font-semibold text-fg">{learner.name}</p>
                             <p className="text-xs text-slate-500">{learner.email}</p>
                           </div>
                         </div>
@@ -515,7 +515,7 @@ export function SubscriptionsPage() {
                       </td>
                       <td className="px-3 py-3 text-slate-600">{adminName(last?.activatedBy)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Link href={`/admin/learners/${learner.id}`} className="text-sm font-semibold text-brand-700 hover:underline">
+                        <Link href={`/admin/learners/${learner.id}`} className="text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                           View learner
                         </Link>
                       </td>
@@ -572,7 +572,7 @@ export function ActivateDialog({ learnerId, open, onClose }: { learnerId: string
         options={state.plans.map((p) => ({ value: String(p.days) as "30" | "90" | "365", label: `${p.days} days` }))}
       />
       <p className="mt-4 text-sm text-slate-600">
-        Runs {formatDate(startsAt)} → <strong className="text-ink">{formatDate(startsAt + days * DAY)}</strong>
+        Runs {formatDate(startsAt)} → <strong className="text-fg">{formatDate(startsAt + days * DAY)}</strong>
         {sub.status === "active" && " (extends current expiry)"}.
       </p>
       <SimulatedNote className="mt-3" />

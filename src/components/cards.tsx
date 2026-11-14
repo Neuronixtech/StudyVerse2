@@ -25,12 +25,12 @@ export function CourseCard({
   const started = progress?.started;
 
   return (
-    <article className="group relative flex flex-col rounded-2xl border border-line bg-white p-3 shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-lift">
+    <article className="group relative flex flex-col rounded-2xl border border-line bg-surface p-3 shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-brand-200 dark:hover:border-brand-400/30 hover:shadow-lift">
       <div className="relative overflow-hidden rounded-xl">
         <CourseThumb theme={course.theme} subjectIds={course.subjectIds} className="aspect-[16/10] transition-transform duration-500 group-hover:scale-[1.03]" />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           {course.examIds.slice(0, 2).map((e) => (
-            <span key={e} className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-ink shadow-sm backdrop-blur">
+            <span key={e} className="rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-bold text-fg shadow-sm backdrop-blur">
               {examShort(e)}
             </span>
           ))}
@@ -49,13 +49,13 @@ export function CourseCard({
       </div>
 
       <div className="flex flex-1 flex-col px-2 pt-4 pb-1">
-        <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-700">
+        <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
           <SubjectIcon subject={course.subjectIds.length === 1 ? course.subjectIds[0] : "mixed"} className="size-3.5" />
           {course.subjectIds.map(subjectName).join(" · ")}
           <span className="text-slate-300">•</span>
           <span className="text-slate-500">{course.level}</span>
         </p>
-        <h3 className="text-[15px] leading-snug font-bold text-ink">
+        <h3 className="text-[15px] leading-snug font-bold text-fg">
           <Link href={`/courses/${course.slug}`} className="after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none">
             {course.title}
           </Link>
@@ -67,7 +67,7 @@ export function CourseCard({
             <span className="truncate text-xs font-medium text-slate-600">{course.instructor.name}</span>
           </div>
           {stats.preview && !active && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-brand-700">
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-brand-700 dark:text-brand-300">
               <CirclePlay className="size-3.5" /> Free preview
             </span>
           )}
@@ -75,7 +75,7 @@ export function CourseCard({
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-dashed border-line pt-3 text-xs text-slate-500">
           {course.rating > 0 && (
-            <span className="inline-flex items-center gap-1 font-semibold text-ink">
+            <span className="inline-flex items-center gap-1 font-semibold text-fg">
               <Star className="size-3.5 fill-amber-400 text-amber-400" /> {course.rating.toFixed(1)}
               <span className="font-normal text-slate-400">({formatNumber(course.ratingCount)})</span>
             </span>
@@ -94,7 +94,7 @@ export function CourseCard({
               <span>
                 {progress.completed} of {progress.total} lessons watched
               </span>
-              <span className="text-brand-700">{progress.percent}%</span>
+              <span className="text-brand-700 dark:text-brand-300">{progress.percent}%</span>
             </div>
             <ProgressBar value={progress.percent} size="sm" label={`${course.title} progress`} />
           </div>
@@ -133,15 +133,15 @@ export function TestCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col rounded-2xl border bg-white p-5 shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:shadow-lift",
-        test.isDemo ? "border-brand-300 ring-1 ring-brand-200" : "border-line hover:border-brand-200",
+        "group relative flex flex-col rounded-2xl border bg-surface p-5 shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:shadow-lift",
+        test.isDemo ? "border-brand-300 ring-1 ring-brand-200 dark:ring-brand-400/30" : "border-line hover:border-brand-200 dark:hover:border-brand-400/30",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <span
           className={cn(
             "grid size-11 place-items-center rounded-xl",
-            test.isDemo ? "bg-brand-600 text-white" : "bg-brand-50 text-brand-700",
+            test.isDemo ? "bg-brand-600 text-white" : "bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300",
           )}
         >
           {test.isDemo ? <Gift className="size-5" /> : <FileQuestion className="size-5" />}
@@ -177,7 +177,7 @@ export function TestCard({
         )}
       </div>
 
-      <h3 className="mt-3 text-[15px] leading-snug font-bold text-ink">
+      <h3 className="mt-3 text-[15px] leading-snug font-bold text-fg">
         <Link href={`/tests/${test.id}`} className="after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none">
           {test.title}
         </Link>
@@ -187,18 +187,18 @@ export function TestCard({
       <dl className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center">
         <div>
           <dt className="text-[11px] font-medium text-slate-500">Questions</dt>
-          <dd className="text-sm font-bold text-ink">{qCount}</dd>
+          <dd className="text-sm font-bold text-fg">{qCount}</dd>
         </div>
         <div>
           <dt className="text-[11px] font-medium text-slate-500">Duration</dt>
-          <dd className="inline-flex items-center gap-1 text-sm font-bold text-ink">
+          <dd className="inline-flex items-center gap-1 text-sm font-bold text-fg">
             <Timer className="size-3.5 text-slate-400" />
             {duration}m
           </dd>
         </div>
         <div>
           <dt className="text-[11px] font-medium text-slate-500">Max marks</dt>
-          <dd className="text-sm font-bold text-ink">{maxScoreOf(test)}</dd>
+          <dd className="text-sm font-bold text-fg">{maxScoreOf(test)}</dd>
         </div>
       </dl>
 

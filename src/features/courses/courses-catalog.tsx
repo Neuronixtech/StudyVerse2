@@ -68,7 +68,7 @@ function Catalog({ initialQ, initialExam }: { initialQ: string; initialExam: Exa
           {[{ id: "" as const, name: "All exams" }, ...EXAMS.filter((e) => !e.comingSoon)].map((e) => (
             <label key={e.id || "all"} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50">
               <input type="radio" name="exam" checked={exam === e.id} onChange={() => setExam(e.id)} className="size-4 accent-brand-600" />
-              <span className={cn("font-medium", exam === e.id ? "text-ink" : "text-slate-600")}>{e.name}</span>
+              <span className={cn("font-medium", exam === e.id ? "text-fg" : "text-slate-600")}>{e.name}</span>
             </label>
           ))}
         </div>
@@ -84,7 +84,7 @@ function Catalog({ initialQ, initialExam }: { initialQ: string; initialExam: Exa
                 onChange={() => setSubjects((prev) => (prev.includes(s.id) ? prev.filter((x) => x !== s.id) : [...prev, s.id]))}
                 className="size-4 rounded accent-brand-600"
               />
-              <span className={cn("font-medium", subjects.includes(s.id) ? "text-ink" : "text-slate-600")}>{s.name}</span>
+              <span className={cn("font-medium", subjects.includes(s.id) ? "text-fg" : "text-slate-600")}>{s.name}</span>
             </label>
           ))}
         </div>
@@ -99,13 +99,13 @@ function Catalog({ initialQ, initialExam }: { initialQ: string; initialExam: Exa
         </Select>
       </fieldset>
       {learner && (
-        <label className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-brand-50 px-3 py-2.5 text-sm font-semibold text-brand-800">
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-brand-50 dark:bg-brand-400/10 px-3 py-2.5 text-sm font-semibold text-brand-800 dark:text-brand-200">
           <input type="checkbox" checked={inProgressOnly} onChange={(e) => setInProgressOnly(e.target.checked)} className="size-4 rounded accent-brand-600" />
           Only courses I&apos;ve started
         </label>
       )}
       {activeFilters > 0 && (
-        <button type="button" onClick={clear} className="text-sm font-semibold text-brand-700 hover:underline">
+        <button type="button" onClick={clear} className="text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
           Clear all filters
         </button>
       )}
@@ -115,8 +115,8 @@ function Catalog({ initialQ, initialExam }: { initialQ: string; initialExam: Exa
   return (
     <div className="container-page grid grid-cols-1 gap-8 py-10 lg:grid-cols-[240px_1fr]">
       <aside className="hidden lg:block" aria-label="Filters">
-        <div className="sticky top-24 rounded-2xl border border-line bg-white p-5 shadow-card">
-          <p className="mb-5 flex items-center gap-2 text-sm font-bold text-ink">
+        <div className="sticky top-24 rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <p className="mb-5 flex items-center gap-2 text-sm font-bold text-fg">
             <SlidersHorizontal className="size-4" /> Filters
           </p>
           {filterPanel}
@@ -132,10 +132,10 @@ function Catalog({ initialQ, initialExam }: { initialQ: string; initialExam: Exa
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search by course, topic or instructor"
-              className="h-11 w-full rounded-xl border border-line-strong bg-white pr-10 pl-10 text-sm text-ink shadow-xs outline-none focus:border-brand-500 focus:shadow-ring"
+              className="h-11 w-full rounded-xl border border-line-strong bg-surface pr-10 pl-10 text-sm text-fg shadow-xs outline-none focus:border-brand-500 focus:shadow-ring"
             />
             {q && (
-              <button type="button" onClick={() => setQ("")} className="absolute top-1/2 right-3 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-ink" aria-label="Clear search">
+              <button type="button" onClick={() => setQ("")} className="absolute top-1/2 right-3 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-fg" aria-label="Clear search">
                 <X className="size-4" />
               </button>
             )}
@@ -159,7 +159,7 @@ function Catalog({ initialQ, initialExam }: { initialQ: string; initialExam: Exa
         <p className="mt-5 mb-5 text-sm text-slate-500" aria-live="polite">
           {load.status === "success" ? (
             <>
-              Showing <strong className="text-ink">{results.length}</strong> course{results.length === 1 ? "" : "s"}
+              Showing <strong className="text-fg">{results.length}</strong> course{results.length === 1 ? "" : "s"}
               {exam && <> for {EXAMS.find((e) => e.id === exam)?.name}</>}
             </>
           ) : (

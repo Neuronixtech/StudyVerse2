@@ -33,6 +33,7 @@ import { useSession } from "@/lib/hooks";
 import { logoutAdmin } from "@/lib/store";
 import type { Admin, Permission } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface NavItem {
   href: string;
@@ -102,7 +103,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="grid min-h-dvh place-items-center bg-slate-100 p-4">
         {hiddenChildren}
-        <div className="w-full max-w-md rounded-2xl border border-line bg-white p-8 text-center shadow-card">
+        <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-8 text-center shadow-card">
           <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-ink text-white">
             <ShieldCheck className="size-7" />
           </span>
@@ -111,7 +112,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <ButtonLink href={`/admin/login?next=${encodeURIComponent(pathname)}`} block className="mt-6">
             Go to admin login
           </ButtonLink>
-          <Link href="/" className="mt-4 inline-block text-sm font-semibold text-brand-700 hover:underline">
+          <Link href="/" className="mt-4 inline-block text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
             Back to StudyVerse
           </Link>
         </div>
@@ -141,14 +142,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     title={allowed ? undefined : item.ownerOnly ? "Owner only" : "You don't have this permission"}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                      active ? "bg-brand-600 text-white shadow-sm" : allowed ? "text-slate-300 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-white/5",
+                      active ? "bg-brand-600 text-white shadow-sm" : allowed ? "text-white/70 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-white/5",
                     )}
                   >
                     <Icon className="size-4 shrink-0" />
                     <span className="flex-1 truncate">{item.label}</span>
                     {!allowed && <Lock className="size-3.5" aria-label="Restricted" />}
                     {allowed && item.badge === "pending" && pending > 0 && (
-                      <span className={cn("rounded-full px-1.5 py-px text-[11px] font-bold", active ? "bg-white text-brand-700" : "bg-amber-400 text-ink")}>{pending}</span>
+                      <span className={cn("rounded-full px-1.5 py-px text-[11px] font-bold", active ? "bg-surface text-brand-700 dark:text-brand-300" : "bg-amber-400 text-ink")}>{pending}</span>
                     )}
                   </Link>
                 </li>
@@ -185,7 +186,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-surface px-4 sm:px-6">
           <button type="button" className="grid size-10 place-items-center rounded-lg hover:bg-slate-100 lg:hidden" onClick={() => setNavOpen(true)} aria-label="Open admin navigation">
             <MenuIcon className="size-5" />
           </button>
@@ -193,12 +194,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <LogoMark className="size-8" />
             <span className="rounded-md bg-ink px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase">Admin</span>
           </Link>
-          <span className="ml-auto hidden items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-amber-200 md:inline-flex">
+          <span className="ml-auto hidden items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:text-amber-200 ring-1 ring-amber-200 dark:ring-amber-500/30 md:inline-flex">
             Prototype · mock data
           </span>
-          <Link href="/" target="_blank" className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:flex md:ml-0">
+          <Link href="/" target="_blank" className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:ml-auto sm:flex md:ml-0">
             View site <ExternalLink className="size-3.5" />
           </Link>
+          <ThemeToggle className="ml-auto sm:ml-0" />
           <Menu
             label="Admin account"
             trigger={(p) => (
@@ -207,10 +209,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 onClick={p.toggle}
                 aria-expanded={p["aria-expanded"]}
                 aria-haspopup={p["aria-haspopup"]}
-                className="ml-auto flex items-center gap-2 rounded-full border border-line py-1 pr-2.5 pl-1 hover:border-brand-300 sm:ml-0"
+                className="flex items-center gap-2 rounded-full border border-line py-1 pr-2.5 pl-1 hover:border-brand-300"
               >
                 <Avatar name={admin.name} size="sm" />
-                <span className="hidden text-sm font-semibold text-ink sm:block">{admin.name.split(" ")[0]}</span>
+                <span className="hidden text-sm font-semibold text-fg sm:block">{admin.name.split(" ")[0]}</span>
                 <Badge tone={admin.role === "owner" ? "violet" : "sky"} size="xs">
                   {admin.role === "owner" ? "Owner" : "Staff"}
                 </Badge>
@@ -221,7 +223,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {(close) => (
               <>
                 <div className="border-b border-line px-2.5 pt-1.5 pb-2.5">
-                  <p className="text-sm font-bold text-ink">{admin.name}</p>
+                  <p className="text-sm font-bold text-fg">{admin.name}</p>
                   <p className="truncate text-xs text-slate-500">{admin.email}</p>
                 </div>
                 <div className="py-1">
@@ -267,7 +269,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 /** Restricted state shown inside a page when the admin lacks a permission */
 export function Restricted({ what, ownerOnly }: { what: string; ownerOnly?: boolean }) {
   return (
-    <div className="mx-auto max-w-lg rounded-2xl border border-line bg-white p-8 text-center shadow-card">
+    <div className="mx-auto max-w-lg rounded-2xl border border-line bg-surface p-8 text-center shadow-card">
       <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-500">
         <Lock className="size-7" />
       </span>

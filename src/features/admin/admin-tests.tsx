@@ -132,7 +132,7 @@ export function TestsAdminPage() {
                   return (
                     <tr key={t.id} className="border-t border-line hover:bg-slate-50/60">
                       <td className="px-4 py-3">
-                        <Link href={`/admin/tests/${t.id}`} className="font-semibold text-ink hover:text-brand-700">
+                        <Link href={`/admin/tests/${t.id}`} className="font-semibold text-fg hover:text-brand-700 dark:hover:text-brand-300">
                           {t.title}
                         </Link>
                         <p className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
@@ -320,7 +320,7 @@ export function TestCreatePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link href="/admin/tests" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-ink">
+      <Link href="/admin/tests" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg">
         <ArrowLeft className="size-4" /> Tests
       </Link>
       <PageHeader title="New test" description="Tests start unpublished. You'll add sections and questions next." />
@@ -356,7 +356,7 @@ export function TestCreatePage() {
           </div>
           <ChipGroup label="Subjects (one section is created per subject)" value={subjectIds} onChange={setSubjectIds} options={SUBJECTS.map((s) => ({ value: s.id, label: s.name }))} error={errors.subjects} />
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Timing</p>
+            <p className="mb-2 text-sm font-semibold text-fg">Timing</p>
             <Segmented label="Timing mode" value={timingMode} onChange={setTimingMode} options={[{ value: "overall", label: "One overall timer" }, { value: "sectional", label: "Section timers" }]} />
           </div>
           <div className="flex justify-end gap-2 border-t border-line pt-5">
@@ -437,7 +437,7 @@ function TestEditor({ test, adminId }: { test: Test; adminId: string }) {
 
   return (
     <div className="space-y-6 pb-24">
-      <Link href="/admin/tests" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-ink">
+      <Link href="/admin/tests" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg">
         <ArrowLeft className="size-4" /> Tests
       </Link>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -510,9 +510,9 @@ function TestEditor({ test, adminId }: { test: Test; adminId: string }) {
       {tab === "questions" && <SectionsEditor draft={draft} setDraft={setDraft} />}
       {tab === "preview" && <InstructionsPreview draft={draft} />}
 
-      <div className={cn("fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur transition-transform lg:left-64", dirty ? "translate-y-0" : "invisible translate-y-full")} aria-hidden={!dirty}>
+      <div className={cn("fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur transition-transform lg:left-64", dirty ? "translate-y-0" : "invisible translate-y-full")} aria-hidden={!dirty}>
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-8">
-          <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <p className="flex items-center gap-2 text-sm font-semibold text-fg">
             <span className="size-2 rounded-full bg-amber-500" /> Unsaved changes {attempts > 0 && <span className="hidden font-normal text-slate-500 sm:inline">· will save as v{test.version + 1}</span>}
           </p>
           <div className="flex gap-2">
@@ -654,7 +654,7 @@ function SettingsForm({ draft, setDraft }: { draft: Test; setDraft: (t: Test) =>
               )}
             </div>
             <div>
-              <p className="mb-2 text-sm font-semibold text-ink">Answer key & solutions</p>
+              <p className="mb-2 text-sm font-semibold text-fg">Answer key & solutions</p>
               <Segmented
                 label="Result release"
                 value={draft.resultRelease}
@@ -716,7 +716,7 @@ function SectionsEditor({ draft, setDraft }: { draft: Test; setDraft: (t: Test) 
               <IconButton label="Move section down" size="sm" disabled={si === draft.sections.length - 1} onClick={() => setSections(moveItem(draft.sections, si, si + 1))}>
                 <ArrowDown />
               </IconButton>
-              <IconButton label="Remove section" size="sm" className="hover:text-red-600" onClick={() => (s.questions.length ? setRemoveSection(s) : setSections(draft.sections.filter((x) => x.id !== s.id)))}>
+              <IconButton label="Remove section" size="sm" className="hover:text-red-600 dark:hover:text-red-400" onClick={() => (s.questions.length ? setRemoveSection(s) : setSections(draft.sections.filter((x) => x.id !== s.id)))}>
                 <Trash2 />
               </IconButton>
             </div>
@@ -731,18 +731,18 @@ function SectionsEditor({ draft, setDraft }: { draft: Test; setDraft: (t: Test) 
                 return (
                   <li key={q.id} className="flex items-start gap-3 px-4 py-3">
                     <span className="mt-0.5 w-7 shrink-0 text-xs font-bold text-slate-400">Q{qi + 1}</span>
-                    <span className={cn("mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold", q.type === "single" ? "bg-brand-50 text-brand-700" : q.type === "multi" ? "bg-violet-50 text-violet-700" : "bg-amber-50 text-amber-800")}>
+                    <span className={cn("mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold", q.type === "single" ? "bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300" : q.type === "multi" ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300" : "bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200")}>
                       {QUESTION_TYPE_SHORT[q.type]}
                     </span>
                     <button type="button" onClick={() => setEditing({ sectionId: s.id, question: q })} className="min-w-0 flex-1 text-left">
-                      <span className="line-clamp-2 text-sm text-ink hover:text-brand-700">{q.text || <em className="text-slate-400">Empty question</em>}</span>
+                      <span className="line-clamp-2 text-sm text-fg hover:text-brand-700 dark:hover:text-brand-300">{q.text || <em className="text-slate-400">Empty question</em>}</span>
                       <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-slate-500">
                         <span>
                           +{m.correct} / {m.incorrect}
                           {q.marks && " (custom)"}
                         </span>
                         <span>{q.difficulty}</span>
-                        {issue && <span className="font-semibold text-red-600">{issue}</span>}
+                        {issue && <span className="font-semibold text-red-600 dark:text-red-400">{issue}</span>}
                       </span>
                     </button>
                     <div className="flex shrink-0 items-center">
@@ -767,7 +767,7 @@ function SectionsEditor({ draft, setDraft }: { draft: Test; setDraft: (t: Test) 
                       <IconButton label="Edit" size="sm" onClick={() => setEditing({ sectionId: s.id, question: q })}>
                         <Pencil />
                       </IconButton>
-                      <IconButton label="Delete" size="sm" className="hover:text-red-600" onClick={() => updateSection(s.id, { questions: s.questions.filter((x) => x.id !== q.id) })}>
+                      <IconButton label="Delete" size="sm" className="hover:text-red-600 dark:hover:text-red-400" onClick={() => updateSection(s.id, { questions: s.questions.filter((x) => x.id !== q.id) })}>
                         <Trash2 />
                       </IconButton>
                     </div>
@@ -885,7 +885,7 @@ function QuestionDialog({
       title={question ? "Edit question" : "Add question"}
       footer={
         <>
-          {error && <p className="mr-auto self-center text-sm font-semibold text-red-600">{error}</p>}
+          {error && <p className="mr-auto self-center text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
@@ -896,7 +896,7 @@ function QuestionDialog({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-5">
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Question type</p>
+            <p className="mb-2 text-sm font-semibold text-fg">Question type</p>
             <Segmented
               label="Question type"
               value={q.type}
@@ -936,7 +936,7 @@ function QuestionDialog({
 
           {q.type === "numerical" ? (
             <fieldset className="rounded-xl border border-line p-4">
-              <legend className="px-1 text-sm font-semibold text-ink">Numerical answer</legend>
+              <legend className="px-1 text-sm font-semibold text-fg">Numerical answer</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <NumberInput label="Correct value" value={q.numerical?.value ?? NaN} step={0.01} onChange={(n) => set("numerical", { ...q.numerical!, value: n })} />
                 <NumberInput label="Tolerance (±)" value={q.numerical?.tolerance ?? 0} min={0} step={0.01} onChange={(n) => set("numerical", { ...q.numerical!, tolerance: n })} />
@@ -946,21 +946,21 @@ function QuestionDialog({
             </fieldset>
           ) : (
             <fieldset>
-              <legend className="mb-2 text-sm font-semibold text-ink">Options · mark the correct {q.type === "single" ? "answer" : "answers"}</legend>
+              <legend className="mb-2 text-sm font-semibold text-fg">Options · mark the correct {q.type === "single" ? "answer" : "answers"}</legend>
               <ul className="space-y-2">
                 {q.options.map((o, i) => {
                   const correct = q.correctOptionIds.includes(o.id);
                   return (
-                    <li key={o.id} className={cn("flex items-center gap-2 rounded-xl border-2 p-2", correct ? "border-emerald-400 bg-emerald-50/50" : "border-line")}>
+                    <li key={o.id} className={cn("flex items-center gap-2 rounded-xl border-2 p-2", correct ? "border-emerald-400 bg-emerald-50/50 dark:bg-emerald-500/10" : "border-line")}>
                       <span className="grid size-7 shrink-0 place-items-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">{String.fromCharCode(65 + i)}</span>
                       <input
                         value={o.text}
                         onChange={(e) => set("options", q.options.map((x) => (x.id === o.id ? { ...x, text: e.target.value } : x)))}
                         placeholder={`Option ${String.fromCharCode(65 + i)}`}
                         aria-label={`Option ${String.fromCharCode(65 + i)} text`}
-                        className="h-9 min-w-0 flex-1 rounded-md bg-transparent px-2 text-sm text-ink outline-none focus:bg-white focus:ring-2 focus:ring-brand-300"
+                        className="h-9 min-w-0 flex-1 rounded-md bg-transparent px-2 text-sm text-fg outline-none focus:bg-surface focus:ring-2 focus:ring-brand-300"
                       />
-                      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white">
+                      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-surface">
                         <input type={q.type === "single" ? "radio" : "checkbox"} name="correct" checked={correct} onChange={() => { toggleCorrect(o.id); setError(null); }} className="accent-emerald-600" />
                         Correct
                       </label>
@@ -1003,22 +1003,22 @@ function QuestionDialog({
           <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Learner preview</p>
           <div className="rounded-2xl border border-line bg-slate-50 p-4">
             <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-ink">Question 1</span>
+              <span className="text-fg">Question 1</span>
               <span className="flex gap-1">
-                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700">+{m.correct}</span>
-                <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-700">{m.incorrect}</span>
+                <span className="rounded bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-300">+{m.correct}</span>
+                <span className="rounded bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 text-red-700 dark:text-red-300">{m.incorrect}</span>
               </span>
             </div>
-            <p className="mt-3 text-sm font-medium whitespace-pre-wrap text-ink">{q.text || <span className="text-slate-400">Your question appears here…</span>}</p>
+            <p className="mt-3 text-sm font-medium whitespace-pre-wrap text-fg">{q.text || <span className="text-slate-400">Your question appears here…</span>}</p>
             {q.type === "numerical" ? (
-              <div className="mt-3 h-10 rounded-lg border-2 border-line-strong bg-white px-3 py-2 font-mono text-sm text-slate-400">Answer</div>
+              <div className="mt-3 h-10 rounded-lg border-2 border-line-strong bg-surface px-3 py-2 font-mono text-sm text-slate-400">Answer</div>
             ) : (
               <ul className="mt-3 space-y-1.5">
                 {q.options.map((o, i) => (
-                  <li key={o.id} className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs">
+                  <li key={o.id} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs">
                     <span className={cn("size-3.5 shrink-0 border border-slate-300", q.type === "single" ? "rounded-full" : "rounded")} />
                     <span className="font-bold text-slate-500">{String.fromCharCode(65 + i)}</span>
-                    <span className="truncate text-ink">{o.text || "—"}</span>
+                    <span className="truncate text-fg">{o.text || "—"}</span>
                   </li>
                 ))}
               </ul>
@@ -1043,16 +1043,16 @@ function InstructionsPreview({ draft }: { draft: Test }) {
           ["Questions", questionCount(draft)],
           ["Maximum marks", maxScoreOf(draft)],
         ].map(([k, v]) => (
-          <div key={String(k)} className="rounded-xl bg-brand-50/70 p-3">
-            <dt className="text-xs font-semibold text-brand-800">{k}</dt>
-            <dd className="text-base font-extrabold text-ink">{v}</dd>
+          <div key={String(k)} className="rounded-xl bg-brand-50/70 dark:bg-brand-400/10 p-3">
+            <dt className="text-xs font-semibold text-brand-800 dark:text-brand-200">{k}</dt>
+            <dd className="text-base font-extrabold text-fg">{v}</dd>
           </div>
         ))}
       </dl>
       <ul className="mt-5 list-disc space-y-2 pl-5 text-sm">
         {draft.sections.map((s) => (
           <li key={s.id}>
-            <strong className="text-ink">{s.name}</strong>: {s.questions.length} questions{draft.timingMode === "sectional" && `, ${s.durationMin} min`}
+            <strong className="text-fg">{s.name}</strong>: {s.questions.length} questions{draft.timingMode === "sectional" && `, ${s.durationMin} min`}
           </li>
         ))}
         {types.includes("single") && <li>Single correct: +{draft.defaultMarks.correct}, {draft.defaultMarks.incorrect} for incorrect.</li>}

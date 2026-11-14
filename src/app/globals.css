@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` follows the class next-themes puts on <html> (not the OS media query) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ------------------------------------------------------------------
    StudyVerse design tokens
    Teal-led palette inspired by design/webiste-design.jpg
@@ -22,7 +25,11 @@
   --color-brand-900: #10443f;
   --color-brand-950: #032a27;
 
-  --color-ink: #0d1b2a;
+  /* Semantic tokens — redefined under .dark below */
+  --color-canvas: #ffffff; /* page background */
+  --color-surface: #ffffff; /* cards, inputs, menus */
+  --color-fg: #0d1b2a; /* primary text */
+  --color-ink: #0d1b2a; /* always-dark surfaces (admin sidebar, dark buttons) */
   --color-mist: #f2faf8;
   --color-line: #e5e3f1;
   --color-line-strong: #d3d0e6;
@@ -105,7 +112,7 @@
   }
 
   body {
-    background: #ffffff;
+    background: var(--color-canvas);
     color: var(--color-slate-600);
   }
 
@@ -113,7 +120,7 @@
   h2,
   h3,
   h4 {
-    color: var(--color-ink);
+    color: var(--color-fg);
     letter-spacing: -0.015em;
   }
 
@@ -123,8 +130,8 @@
   }
 
   ::selection {
-    background: var(--color-brand-100);
-    color: var(--color-brand-900);
+    background: color-mix(in oklab, var(--color-brand-400) 35%, transparent);
+    color: var(--color-fg);
   }
 
   dialog::backdrop {
@@ -146,5 +153,56 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* ------------------------------------------------------------------
+   Dark theme
+   Tokens and the neutral (slate) scale flip, so most utilities adapt
+   without per-element `dark:` classes. Brand/status tints use explicit
+   `dark:` variants in the markup.
+------------------------------------------------------------------- */
+.dark {
+  --color-canvas: #0a121a;
+  --color-surface: #101b26;
+  --color-fg: #e8eef5;
+  --color-ink: #172636;
+  --color-mist: #0d1c20;
+  --color-line: #213040;
+  --color-line-strong: #2e3e51;
+
+  /* Neutral scale inverted: light tints become recessed dark tints, mid greys get lighter */
+  --color-slate-50: #0d1720;
+  --color-slate-100: #0b141c;
+  --color-slate-200: #1e2b39;
+  --color-slate-300: #2d3c4e;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #c2cddb;
+  --color-slate-700: #dbe3ed;
+
+  --color-q-notvisited: #1e2b39;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 22px 44px -18px rgb(0 0 0 / 0.7);
+}
+
+.dark dialog::backdrop {
+  background: rgb(0 0 0 / 0.65);
+}
+
+/*
+  Smooth theme switching. The class is added by <ThemeToggle> only for the
+  duration of a switch, so the first paint, hover states and route changes
+  never animate colours (no transition flash on load).
+*/
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition-property: background-color, color, border-color, outline-color, fill, stroke, box-shadow !important;
+    transition-duration: 0.3s !important;
+    transition-timing-function: ease !important;
+    transition-delay: 0s !important;
   }
 }

@@ -47,18 +47,18 @@ export function SubscriptionCard({ sub, compact }: { sub: SubscriptionInfo; comp
 
   if (sub.pending) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-6">
         <div className="flex items-start gap-4">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300">
             <Clock className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-lg font-extrabold text-amber-950">Activation pending</p>
-            <p className="mt-1 text-sm text-amber-900/80">
+            <p className="text-lg font-extrabold text-amber-950 dark:text-amber-50">Activation pending</p>
+            <p className="mt-1 text-sm text-amber-900/80 dark:text-amber-100/80">
               Your {sub.pending.planDays}-day request ({formatINR(sub.pending.amount)} via {sub.pending.method === "upi" ? "UPI" : "bank transfer"}, ref{" "}
               <span className="font-mono">{sub.pending.reference}</span>) was submitted {formatDateTime(sub.pending.submittedAt)}. Access unlocks once an admin approves it.
             </p>
-            {sub.status === "expired" && sub.expiresAt && <p className="mt-2 text-xs text-amber-900/70">Previous subscription expired on {formatDate(sub.expiresAt)}.</p>}
+            {sub.status === "expired" && sub.expiresAt && <p className="mt-2 text-xs text-amber-900/70 dark:text-amber-100/70">Previous subscription expired on {formatDate(sub.expiresAt)}.</p>}
           </div>
         </div>
       </div>
@@ -67,14 +67,14 @@ export function SubscriptionCard({ sub, compact }: { sub: SubscriptionInfo; comp
 
   if (sub.status === "expired" && sub.expiresAt) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+      <div className="rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-red-100 text-red-600">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">
             <TriangleAlert className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-extrabold text-red-950">Subscription expired on {formatDate(sub.expiresAt)}</p>
-            <p className="mt-1 text-sm text-red-900/80">Paid lessons and regular tests are locked. Your progress and exam history are safe.</p>
+            <p className="text-lg font-extrabold text-red-950 dark:text-red-50">Subscription expired on {formatDate(sub.expiresAt)}</p>
+            <p className="mt-1 text-sm text-red-900/80 dark:text-red-100/80">Paid lessons and regular tests are locked. Your progress and exam history are safe.</p>
           </div>
           <ButtonLink href="/subscribe" className="shrink-0">
             Renew now
@@ -93,7 +93,7 @@ export function SubscriptionCard({ sub, compact }: { sub: SubscriptionInfo; comp
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-lg font-extrabold text-white">Unlock every course and test</p>
-          <p className="mt-1 text-sm text-slate-300">
+          <p className="mt-1 text-sm text-white/70">
             {sub.lastRejected ? (
               <span className="text-red-300">Your last request was rejected: {sub.lastRejected.rejectionReason}</span>
             ) : (
@@ -110,7 +110,7 @@ export function SubscriptionCard({ sub, compact }: { sub: SubscriptionInfo; comp
 }
 
 export function StatusIcon({ status }: { status: "pending" | "approved" | "rejected" }) {
-  if (status === "approved") return <CircleCheck className="size-4 text-emerald-600" />;
-  if (status === "rejected") return <TriangleAlert className="size-4 text-red-600" />;
-  return <Clock className="size-4 text-amber-600" />;
+  if (status === "approved") return <CircleCheck className="size-4 text-emerald-600 dark:text-emerald-400" />;
+  if (status === "rejected") return <TriangleAlert className="size-4 text-red-600 dark:text-red-400" />;
+  return <Clock className="size-4 text-amber-600 dark:text-amber-400" />;
 }

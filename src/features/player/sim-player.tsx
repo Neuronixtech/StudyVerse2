@@ -137,7 +137,7 @@ export function SimPlayer({
         <button
           type="button"
           onClick={toggle}
-          className="absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-700 shadow-2xl transition-transform hover:scale-105 sm:size-20"
+          className="absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-surface text-brand-700 dark:text-brand-300 shadow-2xl transition-transform hover:scale-105 sm:size-20"
           aria-label={position > 0 ? "Resume playback" : "Play lesson"}
         >
           <Play className="ml-1 size-8 fill-current sm:size-9" />
@@ -147,8 +147,8 @@ export function SimPlayer({
       {/* Resume prompt */}
       {showResume && (
         <div className="absolute inset-0 grid place-items-center bg-ink/70 backdrop-blur-sm">
-          <div className="mx-4 max-w-sm rounded-2xl bg-white p-5 text-center text-slate-600 shadow-2xl">
-            <p className="text-base font-bold text-ink">Pick up where you left off?</p>
+          <div className="mx-4 max-w-sm rounded-2xl bg-surface p-5 text-center text-slate-600 shadow-2xl">
+            <p className="text-base font-bold text-fg">Pick up where you left off?</p>
             <p className="mt-1 text-sm">You stopped at {formatClock(initialPosition)} of {formatClock(duration)}.</p>
             <div className="mt-4 flex justify-center gap-2">
               <button
@@ -168,7 +168,7 @@ export function SimPlayer({
                   setPosition(0);
                   setPlaying(true);
                 }}
-                className="rounded-lg border border-line-strong px-4 py-2 text-sm font-semibold text-ink hover:bg-slate-50"
+                className="rounded-lg border border-line-strong px-4 py-2 text-sm font-semibold text-fg hover:bg-slate-50"
               >
                 Start over
               </button>

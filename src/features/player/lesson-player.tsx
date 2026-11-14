@@ -30,6 +30,7 @@ import { setLessonCompleted } from "@/lib/store";
 import type { Course, Lesson } from "@/lib/types";
 import { cn, formatClock } from "@/lib/utils";
 import { SimPlayer } from "./sim-player";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: string }) {
   const router = useRouter();
@@ -77,16 +78,16 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
   return (
     <div className="flex min-h-dvh flex-col bg-slate-50">
       {/* Focused player header */}
-      <header className="sticky top-0 z-30 border-b border-line bg-white">
+      <header className="sticky top-0 z-30 border-b border-line bg-surface">
         <div className="flex h-14 items-center gap-3 px-3 sm:px-5">
-          <Link href={`/courses/${course.slug}`} className="flex items-center gap-2 rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 hover:text-ink" aria-label="Back to course page">
+          <Link href={`/courses/${course.slug}`} className="flex items-center gap-2 rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 hover:text-fg" aria-label="Back to course page">
             <ArrowLeft className="size-5" />
           </Link>
           <Link href="/" aria-label="StudyVerse home" className="hidden sm:block">
             <LogoMark className="size-8" />
           </Link>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-ink">{course.title}</p>
+            <p className="truncate text-sm font-bold text-fg">{course.title}</p>
             <p className="truncate text-xs text-slate-500">
               {lessonModule.title} · Lesson {index + 1} of {lessons.length}
             </p>
@@ -97,11 +98,12 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
                 <span>
                   {progress.completed}/{progress.total} completed
                 </span>
-                <span className="text-brand-700">{progress.percent}%</span>
+                <span className="text-brand-700 dark:text-brand-300">{progress.percent}%</span>
               </div>
               <ProgressBar value={progress.percent} size="sm" label="Course progress" />
             </div>
           )}
+          <ThemeToggle />
           <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => setOutlineOpen((o) => !o)} aria-expanded={outlineOpen}>
             {outlineOpen ? <X /> : <BookOpen />} <span className="hidden sm:inline">Contents</span>
           </Button>
@@ -111,7 +113,7 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
       <div className="grid grid-cols-1 flex-1 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 p-3 sm:p-5 lg:p-8">
           {outlineOpen && (
-            <div className="mb-4 overflow-hidden rounded-2xl border border-line bg-white lg:hidden">
+            <div className="mb-4 overflow-hidden rounded-2xl border border-line bg-surface lg:hidden">
               <Outline course={course} currentId={lesson.id} learnerId={learner?.id} onPick={(l) => { setOutlineOpen(false); go(l); }} />
             </div>
           )}
@@ -169,7 +171,7 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-line bg-white p-2">
+          <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-2">
             <Button variant="ghost" disabled={!prev} onClick={() => prev && go(prev)} className="min-w-0">
               <ChevronLeft /> <span className="truncate">{prev ? <><span className="hidden sm:inline">Previous: </span>{prev.title}</> : "Previous"}</span>
             </Button>
@@ -193,17 +195,17 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
               <div className="py-5">
                 <p className="leading-relaxed text-slate-600">{lesson.description}</p>
                 <dl className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-line bg-white p-3">
+                  <div className="rounded-xl border border-line bg-surface p-3">
                     <dt className="text-xs text-slate-500">Instructor</dt>
-                    <dd className="text-sm font-semibold text-ink">{course.instructor.name}</dd>
+                    <dd className="text-sm font-semibold text-fg">{course.instructor.name}</dd>
                   </div>
-                  <div className="rounded-xl border border-line bg-white p-3">
+                  <div className="rounded-xl border border-line bg-surface p-3">
                     <dt className="text-xs text-slate-500">Duration</dt>
-                    <dd className="text-sm font-semibold text-ink">{formatClock(lesson.durationSec)}</dd>
+                    <dd className="text-sm font-semibold text-fg">{formatClock(lesson.durationSec)}</dd>
                   </div>
-                  <div className="rounded-xl border border-line bg-white p-3">
+                  <div className="rounded-xl border border-line bg-surface p-3">
                     <dt className="text-xs text-slate-500">Video source</dt>
-                    <dd className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink">
+                    <dd className="flex items-center gap-1.5 truncate text-sm font-semibold text-fg">
                       {lesson.video.kind === "upload" ? <FileVideo className="size-4 text-slate-400" /> : <ExternalLink className="size-4 text-slate-400" />}
                       {lesson.video.kind === "upload" ? "Uploaded file" : "External URL"}
                     </dd>
@@ -213,11 +215,11 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
             ) : (
               <div className="space-y-3 py-5">
                 {["Lesson notes (PDF)", "Practice worksheet (PDF)"].map((r) => (
-                  <div key={r} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white p-4">
+                  <div key={r} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
                     <div className="flex items-center gap-3">
-                      <span className="grid size-10 place-items-center rounded-lg bg-red-50 text-xs font-bold text-red-600">PDF</span>
+                      <span className="grid size-10 place-items-center rounded-lg bg-red-50 dark:bg-red-500/10 text-xs font-bold text-red-600 dark:text-red-400">PDF</span>
                       <div>
-                        <p className="text-sm font-semibold text-ink">{r}</p>
+                        <p className="text-sm font-semibold text-fg">{r}</p>
                         <p className="text-xs text-slate-500">Downloads aren&apos;t connected in the prototype</p>
                       </div>
                     </div>
@@ -232,7 +234,7 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
           </div>
         </div>
 
-        <aside className="hidden border-l border-line bg-white lg:block" aria-label="Course contents">
+        <aside className="hidden border-l border-line bg-surface lg:block" aria-label="Course contents">
           <div className="sticky top-14 max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
             <Outline course={course} currentId={lesson.id} learnerId={learner?.id} onPick={go} />
           </div>
@@ -251,7 +253,7 @@ function Outline({ course, currentId, learnerId, onPick }: { course: Course; cur
   return (
     <div>
       <div className="border-b border-line px-5 py-4">
-        <p className="text-sm font-bold text-ink">Course contents</p>
+        <p className="text-sm font-bold text-fg">Course contents</p>
         <p className="text-xs text-slate-500">
           {course.modules.length} modules · {allLessons(course).length} lessons
         </p>
@@ -266,8 +268,8 @@ function Outline({ course, currentId, learnerId, onPick }: { course: Course; cur
               onClick={() => setClosed(open ? [...closed, m.id] : closed.filter((x) => x !== m.id))}
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-slate-50"
             >
-              <span className="text-xs font-bold text-brand-700">{String(mi + 1).padStart(2, "0")}</span>
-              <span className="min-w-0 flex-1 text-sm font-bold text-ink">{m.title}</span>
+              <span className="text-xs font-bold text-brand-700 dark:text-brand-300">{String(mi + 1).padStart(2, "0")}</span>
+              <span className="min-w-0 flex-1 text-sm font-bold text-fg">{m.title}</span>
               <span className="text-xs text-slate-400">
                 {m.lessons.filter((l) => done.has(l.id)).length}/{m.lessons.length}
               </span>
@@ -286,17 +288,17 @@ function Outline({ course, currentId, learnerId, onPick }: { course: Course; cur
                         aria-current={current ? "true" : undefined}
                         className={cn(
                           "flex w-full items-start gap-3 border-l-[3px] px-5 py-2.5 text-left transition-colors",
-                          current ? "border-brand-600 bg-brand-50" : "border-transparent hover:bg-slate-50",
+                          current ? "border-brand-600 bg-brand-50 dark:bg-brand-400/10" : "border-transparent hover:bg-slate-50",
                         )}
                       >
-                        <span className={cn("mt-0.5 shrink-0", done.has(l.id) ? "text-emerald-600" : can ? "text-brand-600" : "text-slate-400")}>
+                        <span className={cn("mt-0.5 shrink-0", done.has(l.id) ? "text-emerald-600 dark:text-emerald-400" : can ? "text-brand-600 dark:text-brand-400" : "text-slate-400")}>
                           {done.has(l.id) ? <CircleCheck className="size-4" /> : can ? <CirclePlay className="size-4" /> : <Lock className="size-4" />}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={cn("block text-sm", current ? "font-bold text-brand-800" : "font-medium text-slate-700")}>{l.title}</span>
+                          <span className={cn("block text-sm", current ? "font-bold text-brand-800 dark:text-brand-200" : "font-medium text-slate-700")}>{l.title}</span>
                           <span className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
                             {formatClock(l.durationSec)}
-                            {l.isPreview && <span className="font-semibold text-brand-700">Free preview</span>}
+                            {l.isPreview && <span className="font-semibold text-brand-700 dark:text-brand-300">Free preview</span>}
                           </span>
                         </span>
                       </button>

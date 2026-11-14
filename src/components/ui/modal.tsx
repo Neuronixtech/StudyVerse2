@@ -56,7 +56,7 @@ export function Modal({
         if (dismissible && e.target === ref.current) onClose();
       }}
       className={cn(
-        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-2xl bg-white p-0 text-slate-600 shadow-2xl open:flex open:animate-slide-up open:flex-col",
+        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-2xl bg-surface p-0 text-slate-600 shadow-2xl open:flex open:animate-slide-up open:flex-col",
         sizes[size],
       )}
     >
@@ -65,14 +65,14 @@ export function Modal({
           <div className="flex items-start gap-4 border-b border-line px-5 py-4 sm:px-6">
             {icon && <div className="mt-0.5 shrink-0">{icon}</div>}
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-ink">{title}</h2>
+              <h2 className="text-lg font-bold text-fg">{title}</h2>
               {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
             </div>
             {dismissible && (
               <button
                 type="button"
                 onClick={onClose}
-                className="-mt-1 -mr-2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-ink"
+                className="-mt-1 -mr-2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-fg"
                 aria-label="Close dialog"
               >
                 <X className="size-5" />
@@ -123,7 +123,7 @@ export function ConfirmDialog({
       description={description}
       icon={
         tone === "danger" ? (
-          <span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600">
+          <span className="grid size-10 place-items-center rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400">
             <TriangleAlert className="size-5" />
           </span>
         ) : undefined
@@ -179,7 +179,7 @@ export function Drawer({
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        "m-0 h-dvh max-h-dvh w-full bg-white p-0 text-slate-600 shadow-2xl open:flex open:flex-col",
+        "m-0 h-dvh max-h-dvh w-full bg-surface p-0 text-slate-600 shadow-2xl open:flex open:flex-col",
         width,
         side === "right" ? "ml-auto open:animate-slide-in-right" : "mr-auto open:animate-slide-in-left",
       )}
@@ -187,11 +187,11 @@ export function Drawer({
       {open && (
         <>
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
-            <h2 className="text-base font-bold text-ink">{title}</h2>
+            <h2 className="text-base font-bold text-fg">{title}</h2>
             <button
               type="button"
               onClick={onClose}
-              className="-mr-2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-ink"
+              className="-mr-2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-fg"
               aria-label="Close panel"
             >
               <X className="size-5" />

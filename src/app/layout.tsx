@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
 
@@ -23,16 +24,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e8174",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0e8174" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a121a" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IN" className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`}>
+    // suppressHydrationWarning: next-themes sets the `dark` class and color-scheme on <html>
+    // before hydration, so its attributes intentionally differ from the server HTML.
+    <html lang="en-IN" className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
       {/* suppressHydrationWarning: browser extensions (e.g. ColorZilla) inject attributes on <body> */}
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
-        {children}
-        <Toaster />
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
