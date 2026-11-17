@@ -18,6 +18,13 @@ import {
   ShieldCheck,
   UserCog,
   Users,
+  Store,
+  Library,
+  ShoppingBag,
+  Truck,
+  RotateCcw,
+  BarChart3,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand";
@@ -31,7 +38,8 @@ import { toast } from "@/components/ui/toast";
 import { hasPermission } from "@/lib/access";
 import { useSession } from "@/lib/hooks";
 import { logoutAdmin } from "@/lib/store";
-import type { Admin, Permission } from "@/lib/types";
+import type { Admin, BookPermission, Permission } from "@/lib/types";
+import { ALL_BOOK_PERMISSIONS, hasAnyBookPermission } from "@/lib/bookstore";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -40,8 +48,10 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   perm?: Permission;
+  /** Visible when the admin has any of these bookstore permissions */
+  bookPerms?: BookPermission[];
   ownerOnly?: boolean;
-  badge?: "pending";
+  badge?: "pending" | "bookPayments" | "bookReturns";
 }
 
 const NAV: { group: string; items: NavItem[] }[] = [
@@ -62,6 +72,18 @@ const NAV: { group: string; items: NavItem[] }[] = [
     ],
   },
   {
+    group: "Bookstore",
+    items: [
+      { href: "/admin/bookstore", label: "Store overview", icon: Store, bookPerms: ALL_BOOK_PERMISSIONS },
+      { href: "/admin/bookstore/books", label: "Books & inventory", icon: Library, bookPerms: ["books.edit", "books.photos", "inventory.adjust", "pricing.change"] },
+      { href: "/admin/bookstore/orders", label: "Orders & payments", icon: ShoppingBag, bookPerms: ["payments.verify", "orders.process", "cancellations.decide"], badge: "bookPayments" },
+      { href: "/admin/bookstore/dispatch", label: "Dispatch", icon: Truck, bookPerms: ["dispatch.manage", "orders.process"] },
+      { href: "/admin/bookstore/returns", label: "Returns & refunds", icon: RotateCcw, bookPerms: ["returns.review", "refunds.record", "cancellations.decide"], badge: "bookReturns" },
+      { href: "/admin/bookstore/reports", label: "Reports", icon: BarChart3, bookPerms: ["reports.view"] },
+      { href: "/admin/bookstore/settings", label: "Store settings", icon: SlidersHorizontal, ownerOnly: true },
+    ],
+  },
+  {
     group: "Administration",
     items: [
       { href: "/admin/staff", label: "Admins & staff", icon: ShieldCheck, ownerOnly: true },
@@ -72,6 +94,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
 
 export function canSee(admin: Admin, item: NavItem) {
   if (item.ownerOnly) return admin.role === "owner";
+  if (item.bookPerms) return hasAnyBookPermission(admin, item.bookPerms);
   return item.perm ? hasPermission(admin, item.perm) : true;
 }
 
@@ -81,6 +104,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state, ready, admin } = useSession();
   const [navOpen, setNavOpen] = useState(false);
   const pending = state.requests.filter((r) => r.status === "pending").length;
+  const badgeCount: Record<NonNullable<NavItem["badge"]>, number> = {
+    pending,
+    bookPayments: state.bookOrders.filter((o) => o.status === "payment_verification").length,
+    bookReturns: state.bookOrders.filter((o) => o.returnRequest?.status === "requested" || o.cancellation?.status === "requested").length,
+  };
 
   // Layouts must always render `children` so Next can validate the page segment;
   // while the session loads (or is missing) the page is kept hidden.
@@ -121,7 +149,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isActive = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
+  // Section roots (dashboards) only match exactly; everything else matches its sub-pages too
+  const isActive = (href: string) => (href === "/admin" || href === "/admin/bookstore" ? pathname === href : pathname.startsWith(href));
 
   const nav = (
     <nav aria-label="Admin" className="space-y-6 px-3 py-5">
@@ -148,8 +177,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     <Icon className="size-4 shrink-0" />
                     <span className="flex-1 truncate">{item.label}</span>
                     {!allowed && <Lock className="size-3.5" aria-label="Restricted" />}
-                    {allowed && item.badge === "pending" && pending > 0 && (
-                      <span className={cn("rounded-full px-1.5 py-px text-[11px] font-bold", active ? "bg-surface text-brand-700 dark:text-brand-300" : "bg-amber-400 text-ink")}>{pending}</span>
+                    {allowed && item.badge && badgeCount[item.badge] > 0 && (
+                      <span className={cn("rounded-full px-1.5 py-px text-[11px] font-bold", active ? "bg-surface text-brand-700 dark:text-brand-300" : "bg-amber-400 text-ink")}>{badgeCount[item.badge]}</span>
                     )}
                   </Link>
                 </li>
