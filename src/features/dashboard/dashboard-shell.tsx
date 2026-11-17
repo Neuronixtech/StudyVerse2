@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ClipboardList, CreditCard, LayoutDashboard, LockKeyhole, UserRound } from "lucide-react";
+import { BookOpen, ClipboardList, CreditCard, LayoutDashboard, LockKeyhole, MapPin, Package, UserRound } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Avatar, Skeleton } from "@/components/ui/feedback";
 import { subscriptionLabel } from "@/lib/access";
@@ -15,6 +15,8 @@ const NAV = [
   { href: "/dashboard/courses", label: "My courses", icon: BookOpen },
   { href: "/dashboard/attempts", label: "Attempt history", icon: ClipboardList },
   { href: "/dashboard/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/dashboard/orders", label: "Book orders", icon: Package },
+  { href: "/dashboard/addresses", label: "Addresses", icon: MapPin },
   { href: "/dashboard/profile", label: "Profile & settings", icon: UserRound },
 ];
 

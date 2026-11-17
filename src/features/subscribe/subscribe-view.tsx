@@ -37,7 +37,7 @@ function copy(text: string, label: string) {
 }
 
 /** Decorative, deterministic QR-like pattern. Clearly labelled as non-payable. */
-function DemoQr() {
+export function DemoQr() {
   const cells = Array.from({ length: 21 * 21 }, (_, i) => {
     const x = i % 21;
     const y = Math.floor(i / 21);
@@ -472,7 +472,7 @@ function StepTitle({ n, title, id }: { n: number; title: string; id: string }) {
   );
 }
 
-function CopyRow({ label, value }: { label: string; value: string }) {
+export function CopyRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-line px-3.5 py-2.5">
       <div className="min-w-0">

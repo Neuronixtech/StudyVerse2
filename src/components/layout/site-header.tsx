@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
+  Package,
   UserRound,
 } from "lucide-react";
 import { subscriptionLabel } from "@/lib/access";
@@ -25,11 +26,13 @@ import { Drawer } from "../ui/modal";
 import { Menu, MenuItem } from "../ui/menu";
 import { toast } from "../ui/toast";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { CartButton, NotificationBell } from "@/components/bookstore/header-widgets";
 
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
   { href: "/tests", label: "Tests" },
+  { href: "/books", label: "Bookstore" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -100,12 +103,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
+          <ThemeToggle className="hidden sm:grid" />
+          <CartButton />
+          {ready && learner && <NotificationBell />}
           {!ready ? (
             <Skeleton className="h-9 w-40" />
           ) : learner ? (
             <>
-              <div className="hidden lg:block">{planLink}</div>
+              <div className="hidden xl:block">{planLink}</div>
               <Menu
                 label="Account"
                 trigger={(p) => (
@@ -133,6 +138,7 @@ export function SiteHeader() {
                         { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
                         { href: "/dashboard/courses", label: "My courses", icon: <BookOpen /> },
                         { href: "/dashboard/attempts", label: "Attempt history", icon: <ClipboardList /> },
+                        { href: "/dashboard/orders", label: "My book orders", icon: <Package /> },
                         { href: "/dashboard/subscription", label: "Subscription", icon: <CreditCard /> },
                         { href: "/dashboard/profile", label: "Profile & settings", icon: <UserRound /> },
                       ].map((i) => (
@@ -186,6 +192,10 @@ export function SiteHeader() {
       </div>
 
       <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} title="Menu" side="right" width="max-w-xs">
+        <div className="flex items-center justify-between border-b border-line px-5 py-3 sm:hidden">
+          <span className="text-sm font-semibold text-fg">Appearance</span>
+          <ThemeToggle />
+        </div>
         <nav aria-label="Mobile" className="flex flex-col p-3">
           {[...NAV, ...(learner ? [{ href: "/dashboard", label: "Dashboard" }] : []), { href: "/subscribe", label: learner ? "Subscription & plans" : "Subscribe" }].map((item) => (
             <Link

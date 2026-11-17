@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowRight, CircleCheck, Eye, EyeOff, FlaskConical, MailCheck } from "lucide-react";
+import { ArrowRight, CircleCheck, Eye, EyeOff, FlaskConical, MailCheck, ShoppingCart } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Callout } from "@/components/ui/feedback";
 import { Checkbox, Field, Input, Select } from "@/components/ui/form";
@@ -111,6 +111,11 @@ export function LoginForm() {
         </Callout>
       )}
 
+      {next.startsWith("/books/checkout") && (
+        <Callout tone="brand" className="mt-6" icon={<ShoppingCart />} title="Your cart is saved">
+          Log in to continue to checkout — the books in your cart will be waiting.
+        </Callout>
+      )}
       <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
         {errors.form && (
           <Callout tone="danger" title={errors.form}>
@@ -253,6 +258,11 @@ export function SignupForm() {
         </Callout>
       )}
 
+      {next.startsWith("/books/checkout") && (
+        <Callout tone="brand" className="mt-6" icon={<ShoppingCart />} title="Your cart is saved">
+          Create your account to continue to checkout — your cart comes with you.
+        </Callout>
+      )}
       <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
         <Field label="Full name" error={errors.name} required>
           {(p) => <Input {...p} autoComplete="name" value={v.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Ananya Sharma" />}
