@@ -48,7 +48,7 @@ function DemoQr() {
   });
   return (
     <div className="relative">
-      <svg viewBox="0 0 21 21" className="size-36 rounded-lg bg-surface p-2 ring-1 ring-line" aria-label="Demo QR code (not payable)" role="img" shapeRendering="crispEdges">
+      <svg viewBox="0 0 21 21" className="size-36 rounded-lg bg-white p-2 ring-1 ring-line" aria-label="Demo QR code (not payable)" role="img" shapeRendering="crispEdges">
         {cells.map((on, i) => (on ? <rect key={i} x={i % 21} y={Math.floor(i / 21)} width="1" height="1" fill="#0d1b2a" /> : null))}
       </svg>
       <span className="absolute inset-x-0 -bottom-2 mx-auto w-fit rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-ink">DEMO · NOT PAYABLE</span>

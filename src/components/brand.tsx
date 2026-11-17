@@ -4,13 +4,9 @@ import { cn } from "@/lib/utils";
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 40 40" className={cn("size-9", className)} aria-hidden>
-      <defs>
-        <linearGradient id="sv-g" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#189a8c" />
-          <stop offset="1" stopColor="#0e675e" />
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="11" fill="url(#sv-g)" />
+      {/* Solid fill: a shared gradient id breaks when another copy of the logo is inside a hidden element */}
+      <rect width="40" height="40" rx="11" fill="#0e8174" />
+      <path d="M0 29c9 4 26 5 40-4v4a11 11 0 0 1-11 11H11A11 11 0 0 1 0 29Z" fill="#0e675e" />
       <path d="M11 15.5 20 11l9 4.5-9 4.5-9-4.5Z" fill="#fff" />
       <path d="M14.5 18.2v5.3c0 1.6 2.5 3.5 5.5 3.5s5.5-1.9 5.5-3.5v-5.3L20 21l-5.5-2.8Z" fill="#fff" fillOpacity=".85" />
       <circle cx="29" cy="25" r="1.6" fill="#a9e6da" />
