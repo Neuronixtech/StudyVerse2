@@ -18,7 +18,7 @@ npm run lint
 Use the **Prototype** button in the bottom-left corner to:
 
 - switch learner personas: Visitor, Aarav (no subscription), Diya (pending request), Rohan (active), Sneha (expired)
-- sign in to the admin console as the **Owner** (Vikram) or a **Staff admin** (Priya, who has limited permissions)
+- sign in to the admin console as the **Owner** (Vikram) or a **Staff admin** (Priya, who has limited permissions — e.g. she can dispatch books but not verify payments)
 - simulate slow-network skeletons and request errors on list views
 - reset all mock data
 
@@ -36,6 +36,8 @@ Login pages also have one-click demo accounts. Any email that belongs to a mock 
 | Exam (NTA-style) | `/exam/[testId]` (instructions), `/exam/[testId]/live`, `/results/[attemptId]`, `/results/[attemptId]/review` |
 | Learner | `/dashboard`, `/dashboard/courses`, `/dashboard/attempts`, `/dashboard/subscription`, `/dashboard/profile` |
 | Admin | `/admin/login`, `/admin`, `/admin/courses`, `/admin/tests`, `/admin/learners`, `/admin/requests`, `/admin/subscriptions`, `/admin/staff` (owner only), `/admin/settings` |
+| Bookstore | `/books`, `/books/catalog`, `/books/[slug]`, `/books/cart`, `/books/checkout`, `/books/orders/[orderId]/payment`, `/dashboard/orders`, `/dashboard/addresses` |
+| Bookstore admin | `/admin/bookstore` (overview), `/books`, `/orders`, `/dispatch`, `/returns`, `/reports`, `/settings` (owner only) — all under `/admin/bookstore` |
 
 ## Code map
 
@@ -46,5 +48,6 @@ Login pages also have one-click demo accounts. Any email that belongs to a mock 
 - `src/lib/store.ts`: the prototype store (`useSyncExternalStore`, localStorage, cross-tab sync) and every simulated action
 - `src/lib/exam.ts`: scoring (single, multi with partial marking, numerical with tolerance), palette states and attempt snapshots
 - `src/lib/access.ts`: subscription status (renewals extend expiry), lesson and test access rules, admin permissions
+- `src/lib/bookstore.ts` / `bookstore-store.ts`: bookstore rules (24-hour stock reservation, totals and shipping, return window, permissions) and every simulated order, payment, dispatch, return and refund action — see [BOOKSTORE_SPEC.md](BOOKSTORE_SPEC.md)
 
 Design tokens (the teal palette inspired by `design/webiste-design.jpg`) live in `src/app/globals.css`.
