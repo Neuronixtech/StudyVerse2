@@ -95,6 +95,17 @@ enum TestStatus {
   ARCHIVED
 }
 
+// Catalog classification of a test, as in the prototype (labels "Full mock",
+// "Sectional", "Chapter test", "Practice"). Metadata only: timing mode, sections and
+// questions live on the test version. A SECTIONAL test isn't necessarily
+// section-timed (that's TestVersion.timingMode = SECTION).
+enum TestKind {
+  FULL
+  SECTIONAL
+  CHAPTER
+  PRACTICE
+}
+
 enum TestVersionStatus {
   DRAFT
   PUBLISHED
@@ -1062,6 +1073,8 @@ model Test {
   title           String     @db.VarChar(200)
   slug            String     @unique @db.VarChar(220)
   description     String?    @db.Text
+  // Required, no default: every test is classified explicitly when it's created.
+  kind            TestKind
   status          TestStatus @default(DRAFT)
   isFreeDemo      Boolean    @default(false) @map("is_free_demo")
   activeVersionId String?    @unique @map("active_version_id") @db.Uuid
