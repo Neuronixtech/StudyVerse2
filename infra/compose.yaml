@@ -1,0 +1,44 @@
+# Local development infrastructure (Backend_architecture.md §12.2, §13).
+#
+#   cp infra/.env.example infra/.env     # then set the three passwords
+#   docker compose -f infra/compose.yaml up -d
+#
+# PostgreSQL listens on 127.0.0.1 only. Roles and databases are created on the first
+# start of an empty volume by postgres/init/01-roles-and-databases.sh. To re-run it,
+# remove the volume (local data is lost): docker compose -f infra/compose.yaml down -v
+#
+# Development only. Production Compose (pinned digests, secrets, Caddy, the API and
+# worker containers, backups) is a separate file added later.
+name: studyverse
+
+services:
+  postgres:
+    # Pinned minor version; Debian-based so text sorting matches production.
+    image: postgres:18.7-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+      POSTGRES_DB: postgres
+      STUDYVERSE_MIGRATOR_PASSWORD: ${STUDYVERSE_MIGRATOR_PASSWORD:?set STUDYVERSE_MIGRATOR_PASSWORD in infra/.env}
+      STUDYVERSE_APP_PASSWORD: ${STUDYVERSE_APP_PASSWORD:?set STUDYVERSE_APP_PASSWORD in infra/.env}
+      # Store and compare timestamps in UTC (§7.1); convert to Asia/Kolkata only for display.
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      # Loopback only: never expose PostgreSQL on other interfaces (§12.4).
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      # The 18.x image keeps its data under /var/lib/postgresql/18/docker, so the volume
+      # is mounted at /var/lib/postgresql.
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username postgres --dbname studyverse"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  postgres-data:
