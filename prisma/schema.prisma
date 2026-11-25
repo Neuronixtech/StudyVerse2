@@ -3,8 +3,12 @@
 // Review this schema before applying the first production migration.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../apps/api/src/generated/prisma"
+  provider            = "prisma-client"
+  output              = "../apps/api/src/generated/prisma"
+  // The API is native ESM (NestJS 12, "module": "nodenext"): relative imports in
+  // the generated TypeScript need explicit .js extensions to run under Node.
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
