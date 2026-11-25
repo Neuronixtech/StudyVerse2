@@ -145,6 +145,24 @@ CREATE UNIQUE INDEX "addresses_one_default_per_user"
   ON "addresses" ("user_id")
   WHERE "is_default" = TRUE;
 
+-- A decided subscription request or payment names the admin and the time, and a
+-- rejection says why (Backend_architecture.md §2.2, §7.4: approval needs an admin
+-- actor, a timestamp and a decision). The reviewer FKs are ON DELETE RESTRICT so
+-- deleting a user can't silently erase who approved access or money.
+ALTER TABLE "subscription_requests"
+  ADD CONSTRAINT "subscription_requests_decision_check"
+  CHECK ("status" NOT IN ('APPROVED', 'REJECTED')
+    OR ("reviewed_by_id" IS NOT NULL AND "reviewed_at" IS NOT NULL)),
+  ADD CONSTRAINT "subscription_requests_rejection_reason_check"
+  CHECK ("status" <> 'REJECTED' OR "rejection_reason" IS NOT NULL);
+
+ALTER TABLE "payment_submissions"
+  ADD CONSTRAINT "payment_submissions_decision_check"
+  CHECK ("status" NOT IN ('APPROVED', 'REJECTED')
+    OR ("reviewed_by_id" IS NOT NULL AND "reviewed_at" IS NOT NULL)),
+  ADD CONSTRAINT "payment_submissions_rejection_reason_check"
+  CHECK ("status" <> 'REJECTED' OR "rejection_reason" IS NOT NULL);
+
 -- A failed sign-in records a reason code.
 ALTER TABLE "auth_events"
   ADD CONSTRAINT "auth_events_failure_reason_check"

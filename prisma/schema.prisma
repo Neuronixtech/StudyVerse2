@@ -773,7 +773,7 @@ model SubscriptionRequest {
 
   user     User                       @relation("SubscriptionRequester", fields: [userId], references: [id], onDelete: Restrict)
   plan     SubscriptionPlan           @relation(fields: [planId], references: [id], onDelete: Restrict)
-  reviewer User?                      @relation("SubscriptionRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewer User?                      @relation("SubscriptionRequestReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
   period   SubscriptionPeriod?
   events   SubscriptionRequestEvent[]
 
@@ -1513,7 +1513,7 @@ model PaymentSubmission {
   createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
   order    Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  reviewer User? @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewer User? @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
 
   @@index([orderId, submittedAt])
   @@index([status, submittedAt])
