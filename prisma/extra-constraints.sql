@@ -317,3 +317,36 @@ CREATE TRIGGER "payment_submissions_decision_is_final"
 CREATE TRIGGER "subscription_requests_decision_is_final"
   BEFORE UPDATE OR DELETE ON "subscription_requests"
   FOR EACH ROW EXECUTE FUNCTION "guard_final_decision"('PENDING');
+
+-- Row-level triggers don't fire on TRUNCATE, so TRUNCATE (with or without CASCADE)
+-- would bypass both guards above. The API's role has no TRUNCATE right; these
+-- statement-level guards also stop the owner role. They fire for every table a
+-- TRUNCATE ... CASCADE reaches. Clearing data means DELETE (which the row guards check)
+-- or dropping a disposable local or test database.
+CREATE FUNCTION "forbid_truncate"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION '% holds published or decided records and cannot be truncated', TG_TABLE_NAME
+    USING ERRCODE = 'integrity_constraint_violation';
+END;
+$$;
+
+CREATE TRIGGER "test_versions_no_truncate"
+  BEFORE TRUNCATE ON "test_versions"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+CREATE TRIGGER "test_version_sections_no_truncate"
+  BEFORE TRUNCATE ON "test_version_sections"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+CREATE TRIGGER "test_version_questions_no_truncate"
+  BEFORE TRUNCATE ON "test_version_questions"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+CREATE TRIGGER "payment_submissions_no_truncate"
+  BEFORE TRUNCATE ON "payment_submissions"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+CREATE TRIGGER "subscription_requests_no_truncate"
+  BEFORE TRUNCATE ON "subscription_requests"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();

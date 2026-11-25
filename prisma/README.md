@@ -102,6 +102,7 @@ Do not assume a Prisma relation alone proves that two linked rows belong to the 
 And triggers:
 - **Published test versions are immutable.** Once a version is `PUBLISHED` or `SUPERSEDED`, only the move to `SUPERSEDED`, `answerReviewReleaseAt` and `updatedAt` may change, and the version can't be deleted. Its sections and questions can't be added, changed or removed.
 - **Decisions are final.** A decided payment submission or subscription request is write-once, and neither can be deleted.
+- **No TRUNCATE** on `test_versions`, `test_version_sections`, `test_version_questions`, `payment_submissions` or `subscription_requests`. Row-level triggers don't fire on TRUNCATE, so these statement-level guards close that bypass for the owner role as well. The API's role has no TRUNCATE right at all.
 
 Prisma Schema Language can't express any of these. Prisma also leaves them alone: diffing a database that has them against the schema reports no difference (verified on PostgreSQL 18.7). Keep the SQL in the versioned migration history. The trigger error code is `integrity_constraint_violation` (SQLSTATE 23000).
 
