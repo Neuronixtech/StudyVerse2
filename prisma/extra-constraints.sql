@@ -37,6 +37,17 @@ ALTER TABLE "test_attempts"
   ADD CONSTRAINT "test_attempts_exactly_one_actor_check"
   CHECK (num_nonnulls("user_id", "guest_token_hash") = 1);
 
+-- At most one in-progress attempt per actor per test. Starting a test that already
+-- has an in-progress attempt resumes it, so a second tab or a double click can't
+-- open a parallel attempt (Backend_architecture.md §9.6, §10.3).
+CREATE UNIQUE INDEX "test_attempts_one_in_progress_per_user"
+  ON "test_attempts" ("user_id", "test_id")
+  WHERE "status" = 'IN_PROGRESS' AND "user_id" IS NOT NULL;
+
+CREATE UNIQUE INDEX "test_attempts_one_in_progress_per_guest"
+  ON "test_attempts" ("guest_token_hash", "test_id")
+  WHERE "status" = 'IN_PROGRESS' AND "guest_token_hash" IS NOT NULL;
+
 ALTER TABLE "subscription_plans"
   ADD CONSTRAINT "subscription_plans_duration_positive_check"
   CHECK ("duration_days" > 0),
