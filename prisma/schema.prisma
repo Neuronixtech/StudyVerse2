@@ -1,5 +1,5 @@
 // StudyVerse initial production data model.
-// Prisma ORM 7.x schema. Connection URL is configured in prisma7.config.ts.
+// Prisma ORM 7.x schema. Database URLs are configured in apps/api/prisma.config.ts.
 // Review this schema before applying the first production migration.
 
 generator client {
