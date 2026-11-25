@@ -19,7 +19,7 @@
   --color-brand-300: #73d1c2;
   --color-brand-400: #3cb5a6;
   --color-brand-500: #189a8c;
-  --color-brand-600: #0e8174;
+  --color-brand-600: #097f72; /* was #0e8174 — 3% darker so brand text clears 4.5:1 on mist and brand-50 */
   --color-brand-700: #0e675e;
   --color-brand-800: #10524c;
   --color-brand-900: #10443f;
@@ -34,11 +34,25 @@
   --color-line: #e5e3f1;
   --color-line-strong: #d3d0e6;
 
-  /* NTA palette statuses */
+  /* NTA palette statuses — darkened just enough for white labels to reach 4.5:1 */
   --color-q-notvisited: #e2e8f0;
-  --color-q-notanswered: #e5484d;
-  --color-q-answered: #16a34a;
+  --color-q-notanswered: #d63941; /* was #e5484d (3.9:1) */
+  --color-q-answered: #15803d; /* was #16a34a (3.3:1) */
   --color-q-review: #7c3aed;
+
+  /*
+    WCAG 2.1 AA contrast (A11Y-007). Tailwind's stock values for these steps are too light
+    for text and white-on-colour labels. Each override keeps the hue; the green and red
+    scales shift one Tailwind step deeper. Verified by e2e/accessibility/contrast.spec.ts.
+  */
+  --color-slate-400: #63738a; /* was #90a1b9 (2.6:1 on white) → 4.8:1 */
+  --color-slate-500: #586a84; /* was #62748e (4.3:1 on slate-100) → 5.0:1 on light tints */
+  --color-emerald-500: #00845a; /* was #00bc7d (white on it 2.5:1) → 4.7:1 */
+  --color-emerald-600: #007a55; /* was #009966 (3.7:1 on white) → 5.4:1 */
+  --color-emerald-700: #006045;
+  --color-red-500: #e7000b; /* was #fb2c36 (white on it 3.8:1) → 4.8:1 */
+  --color-red-600: #c10007;
+  --color-red-700: #9f0712;
 
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 10px 30px -14px rgb(16 24 40 / 0.14);
   --shadow-lift: 0 2px 4px rgb(16 24 40 / 0.05), 0 22px 44px -18px rgb(14 103 94 / 0.32);
@@ -176,6 +190,7 @@
   --color-slate-100: #0b141c;
   --color-slate-200: #1e2b39;
   --color-slate-300: #2d3c4e;
+  --color-slate-400: #90a1b9; /* the light theme darkens 400 for contrast; dark surfaces need the original */
   --color-slate-500: #94a3b8;
   --color-slate-600: #c2cddb;
   --color-slate-700: #dbe3ed;
@@ -184,6 +199,15 @@
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -14px rgb(0 0 0 / 0.6);
   --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 22px 44px -18px rgb(0 0 0 / 0.7);
+}
+
+/*
+  Always-dark surfaces (the admin sidebar) in the light theme: the neutral steps used for
+  muted text there must stay light, otherwise the darkened light-theme greys fall below 4.5:1.
+*/
+.surface-ink {
+  --color-slate-400: #a3b1c4;
+  --color-slate-500: #94a3b8;
 }
 
 .dark dialog::backdrop {

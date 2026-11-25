@@ -72,9 +72,11 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-surface/90 backdrop-blur-md">
       <div className="container-page flex h-16 items-center gap-4 lg:h-[72px]">
-        <Logo />
+        {/* Signed-in phones need the room for cart, notifications and account (overflowed at ≤ 389 px) */}
+        <Logo compactOnMobile={!!learner} />
 
-        <nav aria-label="Main" className="ml-6 hidden items-center gap-1 md:flex">
+        {/* Inline nav only from lg: at tablet widths (768–1023px) it doesn't fit beside the account controls. */}
+        <nav aria-label="Main" className="ml-6 hidden items-center gap-1 lg:flex">
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -182,7 +184,7 @@ export function SiteHeader() {
           )}
           <button
             type="button"
-            className="grid size-10 place-items-center rounded-lg text-fg hover:bg-slate-100 md:hidden"
+            className="grid size-10 place-items-center rounded-lg text-fg hover:bg-slate-100 lg:hidden"
             aria-label="Open menu"
             onClick={() => setMobileOpen(true)}
           >

@@ -1,0 +1,59 @@
+# Frontend quality gate — FRONTEND_TEST_PLAN.md, Milestone 6.
+#  - Every PR / push: lint, type-check, unit + component tests, production build, Chromium E2E.
+#  - Nightly (and on demand): the same E2E suite on Chromium, Firefox and WebKit.
+name: Frontend tests
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: "30 21 * * *" # 03:00 IST
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, unit & component tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e:
+    name: E2E (${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'all browsers' || 'chromium' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      E2E_ALL_BROWSERS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install browsers
+        run: npx playwright install --with-deps ${{ env.E2E_ALL_BROWSERS && 'chromium firefox webkit' || 'chromium' }}
+      # Playwright builds the app (`next build`) and serves it with `next start` before running.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            reports/
+          retention-days: 14

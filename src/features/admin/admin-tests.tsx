@@ -961,7 +961,7 @@ function QuestionDialog({
                         className="h-9 min-w-0 flex-1 rounded-md bg-transparent px-2 text-sm text-fg outline-none focus:bg-surface focus:ring-2 focus:ring-brand-300"
                       />
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-surface">
-                        <input type={q.type === "single" ? "radio" : "checkbox"} name="correct" checked={correct} onChange={() => { toggleCorrect(o.id); setError(null); }} className="accent-emerald-600" />
+                        <input type={q.type === "single" ? "radio" : "checkbox"} name="correct" aria-label={`Option ${String.fromCharCode(65 + i)} correct`} checked={correct} onChange={() => { toggleCorrect(o.id); setError(null); }} className="accent-emerald-600" />
                         Correct
                       </label>
                       <IconButton

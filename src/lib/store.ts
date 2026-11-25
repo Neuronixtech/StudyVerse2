@@ -113,6 +113,8 @@ function subscribeClock(listener: () => void) {
     if (clockListeners.size === 0 && clockTimer) {
       clearInterval(clockTimer);
       clockTimer = undefined;
+      // Forget the cached time so the next subscriber starts from the real clock, not a stale tick.
+      clock = 0;
     }
   };
 }

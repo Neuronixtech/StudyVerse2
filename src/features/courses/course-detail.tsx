@@ -280,7 +280,11 @@ export function CourseDetail({ slug }: { slug: string }) {
                                 <span className={cn("shrink-0", completed ? "text-emerald-600 dark:text-emerald-400" : can ? "text-brand-600 dark:text-brand-400" : "text-slate-400")}>
                                   {completed ? <CircleCheck className="size-5" /> : can ? <CirclePlay className="size-5" /> : <Lock className="size-5" />}
                                 </span>
-                                <span className="min-w-0 flex-1 text-sm font-medium text-slate-700">{l.title}</span>
+                                <span className="min-w-0 flex-1 text-sm font-medium text-slate-700">
+                                  {/* The icon is decorative; screen readers get the status as text. */}
+                                  <span className="sr-only">{completed ? "Completed: " : can ? "" : "Locked: "}</span>
+                                  {l.title}
+                                </span>
                                 {l.isPreview && (
                                   <Badge tone="brand" size="xs">
                                     Free preview

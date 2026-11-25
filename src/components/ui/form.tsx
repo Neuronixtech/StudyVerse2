@@ -210,7 +210,8 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full rounded-lg bg-slate-100 p-1", className)}>
+    // flex-wrap: segments move to a second row only when they don't fit (narrow phones), never sideways off-screen
+    <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full flex-wrap rounded-lg bg-slate-100 p-1", className)}>
       {options.map((o) => (
         <button
           key={o.value}

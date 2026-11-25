@@ -198,7 +198,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh bg-slate-100">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-ink lg:flex">
+      <aside className="surface-ink sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-ink lg:flex">
         <div className="flex h-16 items-center border-b border-white/10 px-5">
           <Logo href="/admin" light suffix="Admin" />
         </div>
@@ -245,7 +245,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <Badge tone={admin.role === "owner" ? "violet" : "sky"} size="xs">
                   {admin.role === "owner" ? "Owner" : "Staff"}
                 </Badge>
-                <ChevronDown className="size-4 text-slate-400" />
+                <ChevronDown className="hidden size-4 text-slate-400 sm:block" />
               </button>
             )}
           >
@@ -288,7 +288,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <Drawer open={navOpen} onClose={() => setNavOpen(false)} title="Admin console" side="left" width="max-w-xs">
-        <div className="min-h-full bg-ink">{nav}</div>
+        <div className="surface-ink min-h-full bg-ink">{nav}</div>
       </Drawer>
       <PrototypeToolbar sidebarOffset />
     </div>

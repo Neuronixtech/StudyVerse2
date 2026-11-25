@@ -35,7 +35,7 @@ import { ConfirmDialog, Modal } from "@/components/ui/modal";
 import { Menu, MenuItem } from "@/components/ui/menu";
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
-import { availableStock, discountPercent, hasAnyBookPermission, hasBookPermission, reservedQty, stockState } from "@/lib/bookstore";
+import { availableStock, discountPercent, hasAnyBookPermission, hasBookPermission, isReservedBookSlug, reservedQty, stockState } from "@/lib/bookstore";
 import { adjustStock, createBook, saveBook, setBookStatus } from "@/lib/bookstore-store";
 import { useSession, useSimulatedLoad } from "@/lib/hooks";
 import { EXAMS, SUBJECTS } from "@/lib/mock/catalog";
@@ -349,6 +349,7 @@ function validateDraft(d: Draft, books: Book[], selfId?: string) {
   if (!Number.isInteger(d.stock) || d.stock < 0) errs.stock = "Enter stock as a whole number";
   const slug = slugify(d.slug || d.title);
   if (books.some((b) => b.slug === slug && b.id !== selfId)) errs.title = "Another listing uses this title/URL — add the edition or language to the title";
+  else if (isReservedBookSlug(slug)) errs.title = `“/books/${slug}” is a storefront page — add more words to the title`;
   if (d.photos.length === 0) errs.photos = "Add at least one photo";
   return errs;
 }

@@ -21,11 +21,11 @@ import { LogoMark } from "@/components/brand";
 import { UnlockPrompt } from "@/components/unlock-prompt";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { EmptyState, ProgressBar, SimulatedNote, Skeleton } from "@/components/ui/feedback";
+import { EmptyState, ErrorState, ProgressBar, SimulatedNote, Skeleton } from "@/components/ui/feedback";
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import { allLessons, canWatchLesson, courseProgress } from "@/lib/access";
-import { useSession } from "@/lib/hooks";
+import { useSession, useSimulatedLoad } from "@/lib/hooks";
 import { setLessonCompleted } from "@/lib/store";
 import type { Course, Lesson } from "@/lib/types";
 import { cn, formatClock } from "@/lib/utils";
@@ -37,6 +37,8 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
   const { state, ready, learner, sub } = useSession();
   const [tab, setTab] = useState<"overview" | "resources">("overview");
   const [outlineOpen, setOutlineOpen] = useState(false);
+  // Media load, driven by the prototype toolbar's slow-network / request-error switches (VID-008)
+  const media = useSimulatedLoad(`lesson:${lessonId}`);
 
   const course = state.courses.find((c) => c.slug === slug);
   const lessons = course ? allLessons(course) : [];
@@ -120,6 +122,16 @@ export function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: strin
 
           {!ready ? (
             <Skeleton className="aspect-video w-full rounded-2xl" />
+          ) : can && media.status === "loading" ? (
+            <div role="status" aria-label="Loading video">
+              <Skeleton className="aspect-video w-full rounded-2xl" />
+            </div>
+          ) : can && media.status === "error" ? (
+            <div className="grid aspect-video w-full place-items-center">
+              <div className="w-full max-w-md">
+                <ErrorState title="This video couldn't load" description="Check your connection and try again. Your progress so far is saved." onRetry={media.retry} />
+              </div>
+            </div>
           ) : can ? (
             <SimPlayer
               key={`${lesson.id}:${learner?.id ?? "guest"}`}
@@ -295,7 +307,10 @@ function Outline({ course, currentId, learnerId, onPick }: { course: Course; cur
                           {done.has(l.id) ? <CircleCheck className="size-4" /> : can ? <CirclePlay className="size-4" /> : <Lock className="size-4" />}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={cn("block text-sm", current ? "font-bold text-brand-800 dark:text-brand-200" : "font-medium text-slate-700")}>{l.title}</span>
+                          <span className={cn("block text-sm", current ? "font-bold text-brand-800 dark:text-brand-200" : "font-medium text-slate-700")}>
+                            <span className="sr-only">{done.has(l.id) ? "Completed: " : can ? "" : "Locked: "}</span>
+                            {l.title}
+                          </span>
                           <span className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
                             {formatClock(l.durationSec)}
                             {l.isPreview && <span className="font-semibold text-brand-700 dark:text-brand-300">Free preview</span>}

@@ -8,7 +8,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Avatar, EmptyState } from "@/components/ui/feedback";
 import { ConfirmDialog, Drawer, Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
-import { countStates, hasResponse, marksFor, QUESTION_TYPE_LABEL, stateOf, validateNumerical } from "@/lib/exam";
+import { countStates, hasResponse, marksFor, QUESTION_TYPE_LABEL, STATE_LABEL, stateOf, validateNumerical } from "@/lib/exam";
 import { useSession } from "@/lib/hooks";
 import { liveKey, submitLiveExam, updateLiveExam, useNow } from "@/lib/store";
 import type { LiveExam, Question, QuestionResponse, TestSection } from "@/lib/types";
@@ -283,7 +283,7 @@ export function ExamRunner({ testId }: { testId: string }) {
                 key={q.id}
                 type="button"
                 onClick={() => goTo(section.id, q.id)}
-                aria-label={`Question ${i + 1}, ${st.replace("-", " ")}`}
+                aria-label={`Question ${i + 1}, ${STATE_LABEL[st]}`}
                 aria-current={q.id === question.id ? "true" : undefined}
                 className="grid place-items-center rounded-md focus-visible:outline-offset-4"
               >

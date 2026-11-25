@@ -131,7 +131,8 @@ export function BookstoreLanding() {
         </div>
         <div>
           <h2 className="text-lg font-extrabold">Browse by subject</h2>
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          {/* One per row on phones: icon + name + count don't fit in a third of a 320–430 px screen */}
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {SUBJECTS.map((sub) => {
               const n = books.filter((b) => b.subjectIds.includes(sub.id)).length;
               return (
@@ -238,7 +239,8 @@ function Catalog({ initialQ, initialExam, initialSubject, initialSort }: { initi
     const band = PRICE_BANDS.find((b) => b.value === price)!;
     return all
       .filter((b) => {
-        if (needle && !`${b.title} ${b.author ?? ""} ${(b.isbn ?? "").replace(/-/g, "")}`.toLowerCase().includes(needle)) return false;
+        // Hyphens are ignored on both sides so "Part-1" finds "Part-1" and ISBNs match with or without dashes.
+        if (needle && !`${b.title} ${b.author ?? ""} ${b.isbn ?? ""}`.toLowerCase().replace(/-/g, "").includes(needle)) return false;
         if (exam && !b.examIds.includes(exam)) return false;
         if (subject && !b.subjectIds.includes(subject)) return false;
         if (!band.test(b.price)) return false;

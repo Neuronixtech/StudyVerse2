@@ -70,7 +70,8 @@ export function MyOrders() {
                     {o.returnRequest?.status === "requested" && <Badge tone="amber" size="xs">Return requested</Badge>}
                     <p className="text-xs text-slate-500 sm:ml-auto">Placed {formatDate(o.createdAt)}</p>
                   </div>
-                  <div className="mt-4 flex items-center gap-4">
+                  {/* Wraps so the actions drop below on narrow phones (no horizontal scroll at 320 px) */}
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
                     <div className="flex -space-x-3">
                       {o.items.slice(0, 3).map((i) => (
                         <SnapshotCover key={i.bookId} title={i.title} theme={i.theme} className="ring-2 ring-surface" />
@@ -83,7 +84,7 @@ export function MyOrders() {
                         {o.shipment && o.status === "shipped" && <> · {o.shipment.courier} {o.shipment.tracking}</>}
                       </p>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="ml-auto flex shrink-0 gap-2">
                       {needsPayment && (
                         <ButtonLink href={`/books/orders/${o.id}/payment`} size="sm">
                           <CreditCard /> {o.status === "payment_rejected" ? "Resubmit" : "Pay now"}
