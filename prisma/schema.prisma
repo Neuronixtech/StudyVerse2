@@ -1500,9 +1500,9 @@ model Address {
 // extra-constraints.sql). Partial unique indexes allow one ACTIVE cart per learner
 // and per guest token. The guest token is deliberately not unique on its own: the
 // same browser must be able to start a new cart after an earlier one is merged,
-// converted or abandoned. On sign-in the guest cart is transferred to the learner
-// (userId set, guestTokenHash cleared) or merged into the learner's active cart
-// (BOOKSTORE_SPEC §3.2).
+// converted or abandoned. On sign-in the guest cart is merged into the learner's
+// active cart (created if needed) and marked MERGED; it is never re-owned or deleted.
+// See "Guest cart merge" in prisma/README.md (BOOKSTORE_SPEC §3.2).
 model Cart {
   id               String     @id @default(uuid()) @db.Uuid
   userId           String?    @map("user_id") @db.Uuid

@@ -8,7 +8,7 @@ The Prisma ORM 7 data model for StudyVerse. It started as the reviewed starter b
 |---|---|
 | `prisma/schema.prisma` | Models, enums, relations and indexes |
 | `prisma/extra-constraints.sql` | Partial unique indexes and `CHECK` constraints that Prisma Schema Language can't express. Appended to the initial migration |
-| `prisma/migrations/` | Versioned migrations, committed to Git (created once the initial schema is approved) |
+| `prisma/migrations/` | Versioned migrations, committed to Git. `20261125070533_init` is the initial migration (generated and tested; awaiting approval before it is applied anywhere persistent) |
 | `apps/api/prisma.config.ts` | Prisma CLI configuration: schema and migration paths, database URLs |
 | `apps/api/.env.example` | Template for the git-ignored `apps/api/.env` |
 
@@ -49,8 +49,11 @@ npm run db:migrate:dev       # local development databases only
 
 ## Migration policy
 
-- The initial migration is generated with `migrate dev --create-only --name init`. `extra-constraints.sql` is appended to its `migration.sql`, and the combined SQL is reviewed before it is applied anywhere.
-- Once merged, a migration is never edited. Changes are new migrations.
+- The initial migration was generated with `migrate dev --create-only --name init` (identical to `migrate diff --from-empty --to-schema`, apart from that command's `CREATE SCHEMA IF NOT EXISTS "public"` preamble). `extra-constraints.sql` is appended verbatim; `apps/api/src/database/migrations.spec.ts` checks the two copies stay identical.
+- **Every migration is wrapped in `BEGIN;` … `COMMIT;`.** Prisma doesn't make migrations transactional on PostgreSQL (tested on 18.7: a failing statement left the earlier ones applied). Wrapped, a failure leaves nothing behind; recover with `prisma migrate resolve --rolled-back <name>` and deploy the fixed migration. Statements that can't run in a transaction (for example `CREATE INDEX CONCURRENTLY`) go in a migration of their own, without the wrapper.
+- Once applied anywhere shared, a migration is never edited. Changes are new migrations. Hand-written rules (constraints, triggers) go into the new migration's SQL; `extra-constraints.sql` stays as the record of the initial migration's rules.
+- The app role's table access comes from the default privileges set by `infra/postgres/init/01-roles-and-databases.sh` in each database. A database created any other way must get the same `GRANT`/`ALTER DEFAULT PRIVILEGES` statements before the first deploy, or the API can't read its tables.
+- Every integration-test run empties the `_test` database and applies the committed migrations with `prisma migrate deploy` (`apps/api/test/setup/global-setup.ts`), then checks a second deploy is a no-op and the live schema has no drift.
 - `migrate dev` only against local databases; `migrate deploy` everywhere else; never `db push`; never a destructive reset outside local and test databases.
 - Review generated SQL for locks, backfills, large indexes and destructive statements before merging.
 
@@ -70,7 +73,7 @@ Some rules span multiple rows/tables and need transactional service validation i
 - `AttemptQuestionState` and `AttemptSectionState` rows must reference a question or section of the attempt's own test version. (A question's section, by contrast, is enforced in the database by a composite foreign key.)
 - A section-timed version (`timingMode = SECTION`) needs a `durationSeconds` on every section.
 - Associating a guest demo attempt with a learner on sign-in sets `userId`, clears `guestTokenHash` and renumbers the attempt after the learner's existing attempts, in one transaction.
-- Merging a guest cart at sign-in moves its items to the learner's active cart and marks the guest cart `MERGED` with `mergedIntoCartId`, in one transaction.
+- Merging a guest cart at sign-in follows "Guest cart merge" below: one transaction, idempotent, quantities by the prototype's rule.
 - Subscription approval must create/extend a period atomically and only after an admin verifies actual payment.
 - Stock reservation, order placement and inventory balance changes must occur in one transaction with concurrency-safe updates.
 - A video asset becomes ready only after HLS verification and source-archive checksum verification.
@@ -127,6 +130,44 @@ Accounts are deactivated (`status = DEACTIVATED`, `deactivatedAt`), never hard-d
 
 An accidental hard delete of a user with history therefore fails instead of erasing or orphaning it.
 
+**Deactivation is not deletion.** A `DEACTIVATED` account keeps its personal data (name, email, phone, addresses) and all historical records under the current model. A deliberate personal-data retention and deletion policy (what is erased or anonymized, when, and what must be kept for payments, subscriptions and exam records) is still required before production (architecture §14.3, PLAN.md open questions). Nothing in the schema or application deletes or anonymizes data automatically.
+
+**What the database guarantees today:** deactivation changes only the user row. Attempts, payments, subscription requests and periods, orders, audit logs, sessions and tokens all remain. Hard deletion is refused wherever the `RESTRICT` policy applies (verified in `apps/api/test/schema/deactivation.int-spec.ts`).
+
+**Deferred to Milestone 2 (authentication), required there:**
+- Sign-in (password and Google) succeeds only for `ACTIVE` users. `SUSPENDED`, `PENDING_DELETION` and `DEACTIVATED` are refused with the same generic response as wrong credentials (architecture §8.2).
+- Deactivating or suspending an account runs in one transaction that sets `user_sessions.revokedAt` for every open session, deletes the matching rows from the session-store table, and marks every unconsumed `auth_tokens` row consumed. Each session-authenticated request rechecks that the user is `ACTIVE`, so a session that escaped revocation still fails.
+- Redeeming an email-verification or password-reset token checks the user's status as well as expiry and `consumedAt`.
+- An `auth_events` row (`ACCOUNT_SUSPENDED`, `ALL_SESSIONS_REVOKED`) and an `audit_logs` row record who deactivated the account.
+- Integration tests in that milestone cover each item above.
+
+### Guest cart merge
+
+At sign-in the guest cart is merged into the learner's cart. The rule for a book that is in both carts comes from the prototype (`mergeGuestCart` in `src/lib/store.ts`): the learner's cart keeps the **larger** of the two quantities, not their sum. Taking the maximum is idempotent: merging the same carts twice gives the same result. Quantities above available stock stay in the cart, and checkout is blocked until the customer adjusts them (BOOKSTORE_SPEC §5.1); the merge never trims or drops items.
+
+The bookstore service runs the merge in one transaction:
+
+1. `SELECT ... FOR UPDATE` the guest cart. If it is no longer `ACTIVE`, stop: it was already merged, so a retried login or a concurrent second request does nothing.
+2. Find the learner's `ACTIVE` cart, or create it (the partial unique index allows only one).
+3. Copy the guest items: `INSERT ... ON CONFLICT (cart_id, product_id) DO UPDATE SET quantity = GREATEST(cart_items.quantity, EXCLUDED.quantity)`.
+4. Mark the guest cart `MERGED` with `mergedIntoCartId`. Its items stay as the historical record.
+
+The guest cart is never re-owned or deleted. A browser keeping its guest token can start a new `ACTIVE` cart afterwards. Verified on PostgreSQL 18.7, including a retried merge and two concurrent merges (`apps/api/test/schema/carts.int-spec.ts`).
+
+### Correcting payment and subscription decisions
+
+Decisions are write-once (trigger), so a mistake is corrected by a new, attributable record, never by editing the original. What the approved product defines, and the model supports today:
+
+| Mistake | Correction | Recorded as |
+|---|---|---|
+| Payment wrongly rejected | Customer resubmits against the same order (BOOKSTORE_SPEC §6.3) | New `payment_submissions` row; the rejected row is unchanged |
+| Subscription request wrongly rejected | Learner submits a new request, or an admin activates manually (prototype `activateManually`) | New `subscription_requests` row, or a `subscription_periods` row with `activatedById` (RESTRICT), plus an `audit_logs` entry |
+
+**Gap, not yet decided:** the product doesn't define how to correct a wrong *approval*. Today a subscription period can be set to `REVOKED` with `revokedAt` and `revocationReason`, but there is no column for who revoked it. A wrongly approved bookstore payment has no correction record at all, only order status changes, `order_events` and `audit_logs`. `audit_logs` rows can still be updated or deleted by the API's role. Proposed smallest change, awaiting a product decision before implementation:
+1. `subscription_periods.revokedById` (FK to users, RESTRICT) and a CHECK that a `REVOKED` period has `revokedAt`, `revokedById` and `revocationReason`.
+2. An append-only `decision_corrections` table: the corrected `payment_submission_id` or `subscription_request_id` (exactly one), `correctedById` (RESTRICT), a required reason and a timestamp, with no UPDATE or DELETE (trigger). The original decision row is never touched; the effective outcome is "original decision, unless corrected". The follow-up (revoking the period, cancelling the order or recording a refund through the existing tables) happens in the same transaction.
+3. `audit_logs` made append-only (no UPDATE, DELETE or TRUNCATE).
+
 ### Differences from Backend_architecture.md
 
 Table inventory in architecture §7.3 compared with this schema, as reviewed and approved in November 2026.
@@ -154,6 +195,7 @@ Table inventory in architecture §7.3 compared with this schema, as reviewed and
 | `test_versions.resultReleaseMode` | `IMMEDIATE` or `MANUAL` answer-review release (PLAN.md §6.5) |
 | `carts.mergedIntoCartId` + `MERGED` | Guest cart merged into a learner's cart at sign-in (BOOKSTORE_SPEC §3.2) |
 | `users.deactivatedAt` + `DEACTIVATED` | Soft-deleted accounts |
+| `tests.kind` (`TestKind`) | Catalog classification: full, sectional, chapter or practice test (prototype). Metadata only; sections and timing stay on versions |
 
 **Deferred** (not in the initial migration): `email_delivery_attempts` (with notifications), `media_assets` (the architecture says "if useful"), MFA factors (deferred decision 2), the session store table (Milestone 2).
 

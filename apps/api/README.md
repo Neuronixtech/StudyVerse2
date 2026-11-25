@@ -103,7 +103,16 @@ One JSON line per request on stdout: `time`, `level`, `service`, `env`, the requ
 ## Tests
 
 - **Unit and HTTP** (`src/**/*.spec.ts`, `npm test`): configuration, request IDs, logging, error format, security headers, CORS, proxy trust, health with an unreachable database, and the OpenAPI contract. Tests build the app with `createTestApp`, which uses the same setup as `main.ts`.
-- **Integration** (`test/**/*.int-spec.ts`, `npm run test:integration`): readiness against a real PostgreSQL 18, and the database roles' privileges. The setup refuses to run unless both test URLs point at a database whose name ends in `_test`.
+- **Integration** (`test/**/*.int-spec.ts`, `npm run test:integration`) against a real PostgreSQL 18 test database. The global setup refuses to run unless both test URLs point at a database whose name ends in `_test`, empties it, and applies the committed migrations with `prisma migrate deploy`. Suites:
+  - `health`, `database-roles`: readiness and role privileges.
+  - `schema/migration`: one migration applied completely, a second deploy is a no-op, no drift, every custom index, CHECK, trigger and function present, the app role has exactly row access to every table.
+  - `schema/test-versions`, `schema/attempts`: published-version immutability (including TRUNCATE and cascades), sections and section timers, guest retakes, one in-progress attempt, guest-attempt claims.
+  - `schema/decisions`: write-once payment and subscription decisions, resubmission history, the corrections the model supports.
+  - `schema/carts`, `schema/stock`: one active cart per guest, idempotent and concurrent-safe guest cart merge, no overselling under concurrent reservations.
+  - `schema/deactivation`, `schema/constraints`: deactivation keeps history, RESTRICT blocks hard deletes, and the remaining CHECKs and unique indexes.
+
+  Rules are exercised as the app role (`studyverse_app`), mostly inside rolled-back transactions.
+
 - **CI**: [`.github/workflows/backend-tests.yml`](../../.github/workflows/backend-tests.yml) runs everything on each pull request, against a `postgres:18.7` service with the same roles.
 
 ## Layout
