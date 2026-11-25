@@ -1,0 +1,91 @@
+# Backend quality gate for apps/api (Backend_architecture.md §17.2, Milestone 1).
+# Every PR and push to main/develop: install from the lockfile, lint, format, type-check,
+# validate the Prisma schema, run unit/HTTP tests, run integration tests against
+# PostgreSQL 18.7 with the same roles as local development, and build.
+name: Backend tests
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (lint, types, schema, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:18.7-trixie
+        env:
+          # Superuser of this job's throwaway container only.
+          POSTGRES_PASSWORD: postgres
+          TZ: UTC
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies (also generates the Prisma client)
+        run: npm ci
+
+      - name: Generate throwaway role passwords
+        run: |
+          for name in STUDYVERSE_MIGRATOR_PASSWORD STUDYVERSE_APP_PASSWORD; do
+            value="$(openssl rand -hex 24)"
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Create roles and databases (infra/postgres/init)
+        working-directory: .
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGPASSWORD: postgres
+          POSTGRES_USER: postgres
+        run: |
+          bash infra/postgres/init/01-roles-and-databases.sh
+          {
+            echo "TEST_DATABASE_URL=postgresql://studyverse_app:${STUDYVERSE_APP_PASSWORD}@localhost:5432/studyverse_test"
+            echo "TEST_DATABASE_MIGRATION_URL=postgresql://studyverse_migrator:${STUDYVERSE_MIGRATOR_PASSWORD}@localhost:5432/studyverse_test"
+          } >> "$GITHUB_ENV"
+
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+
+      - name: Validate the Prisma schema
+        run: npm run db:validate
+
+      - name: Unit and HTTP tests (includes the OpenAPI contract check)
+        run: npm test
+
+      - name: Integration tests (PostgreSQL 18.7)
+        run: npm run test:integration
+
+      - run: npm run build
