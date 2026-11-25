@@ -1,70 +1,58 @@
-# StudyVerse — Initial Prisma Models
+# StudyVerse — Prisma Data Model
 
-This package contains the first Prisma ORM 7 data model baseline for StudyVerse.
+The Prisma ORM 7 data model for StudyVerse. It started as the reviewed starter baseline and is shared by the API (`apps/api`) and, later, the background worker.
 
 ## Files
 
-- `prisma/schema.prisma` — initial models, enums, relations and indexes.
-- `prisma7.config.ts` — Prisma 7 CLI configuration (Prisma 7.10+ recognizes `prisma7.config.ts`).
-- `prisma/extra-constraints.sql` — PostgreSQL partial unique indexes and `CHECK` constraints that Prisma Schema Language does not express directly.
-- `.env.example` — local PostgreSQL connection example.
+| Path | Purpose |
+|---|---|
+| `prisma/schema.prisma` | Models, enums, relations and indexes |
+| `prisma/extra-constraints.sql` | Partial unique indexes and `CHECK` constraints that Prisma Schema Language can't express. Appended to the initial migration |
+| `prisma/migrations/` | Versioned migrations, committed to Git (created once the initial schema is approved) |
+| `apps/api/prisma.config.ts` | Prisma CLI configuration: schema and migration paths, database URLs |
+| `apps/api/.env.example` | Template for the git-ignored `apps/api/.env` |
+
+The generator writes Prisma Client to `apps/api/src/generated/prisma` (git-ignored; run `npm run prisma:generate`).
 
 ## Version baseline
 
-Use Prisma ORM **7.10.1**, not an unpinned `latest` tag. As of 20 November 2026, Prisma ORM 8 is still a release candidate, while Prisma ORM 7 remains the stable schema-first line. Lock `prisma` and `@prisma/client` to the same exact 7.x version until the project deliberately validates a major-version upgrade.
+Prisma ORM **7.10.1**, pinned exactly in `apps/api/package.json` for `prisma`, `@prisma/client` and `@prisma/adapter-pg`. Prisma 7 requires a PostgreSQL driver adapter and an ESM project.
 
-Prisma 7 requires a PostgreSQL driver adapter and ESM project setup.
+Never run an unpinned `npx prisma`: npm's `latest` tag for `prisma` is an 8.0 release candidate, while `@prisma/client`'s is 7.10.1. Use the npm scripts, which run the pinned CLI. Upgrade all three packages together, deliberately.
 
-Example dependencies for a backend package:
+## Database roles and URLs
 
-```json
-{
-  "type": "module",
-  "dependencies": {
-    "@prisma/adapter-pg": "7.10.1",
-    "@prisma/client": "7.10.1",
-    "dotenv": "^16.6.1",
-    "pg": "^8.16.3"
-  },
-  "devDependencies": {
-    "prisma": "7.10.1",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
-  }
-}
-```
+The API connects as `studyverse_app`, which can read and write rows but can't change the schema. Migrations run as `studyverse_migrator`, which owns the databases (Backend_architecture.md §13.1).
 
-Use the exact adapter version matching the selected Prisma 7 release. Review current compatibility before upgrading any package.
+| Variable | Used by |
+|---|---|
+| `DATABASE_URL` | The running API (app role) |
+| `DATABASE_MIGRATION_URL` | Prisma CLI: migrations (owner role) |
+| `DATABASE_SHADOW_URL` | Local `migrate dev` only: scratch database |
+| `TEST_DATABASE_URL`, `TEST_DATABASE_MIGRATION_URL` | Integration tests; database name must end in `_test` |
 
-## Initial setup
+`prisma.config.ts` loads `apps/api/.env` with Node's built-in loader. Real environment variables take precedence, and `generate`/`validate` work without any database URL.
 
-1. Copy `prisma/`, `prisma7.config.ts`, and `.env.example` into the backend repository root. The schema generator outputs Prisma Client to `apps/api/src/generated/prisma`; adjust the output path if your repo layout differs.
-2. Create a local PostgreSQL 18 database and copy `.env.example` to `.env`.
-3. Install the dependencies above.
-4. Format and validate:
+## Commands
+
+Run from `apps/api`:
 
 ```bash
-npx prisma@7.10.1 format
-npx prisma@7.10.1 validate
+npm ci
+npm run db:validate          # prisma validate + format --check
+npm run db:format            # prisma format
+npm run prisma:generate      # regenerate the client after schema changes
+npm run db:migrate:status
+npm run db:migrate:deploy    # apply committed migrations (CI, containers, deployments)
+npm run db:migrate:dev       # local development databases only
 ```
 
-5. Generate the first migration without applying it:
+## Migration policy
 
-```bash
-npx prisma@7.10.1 migrate dev --create-only --name init
-```
-
-6. Append the contents of `prisma/extra-constraints.sql` to the generated initial migration's `migration.sql`. Review the generated SQL and the appended constraints together. The extra SQL assumes the model/table/enum names in this package are unchanged.
-7. Apply the migration locally:
-
-```bash
-npx prisma@7.10.1 migrate dev
-npx prisma@7.10.1 generate
-```
-
-8. Commit the schema and migration to version control. Production deployment uses `prisma migrate deploy`, never `migrate dev` or `db push`.
-
-Do not apply the initial migration to production before reviewing the SQL and testing it against a disposable database.
+- The initial migration is generated with `migrate dev --create-only --name init`. `extra-constraints.sql` is appended to its `migration.sql`, and the combined SQL is reviewed before it is applied anywhere.
+- Once merged, a migration is never edited. Changes are new migrations.
+- `migrate dev` only against local databases; `migrate deploy` everywhere else; never `db push`; never a destructive reset outside local and test databases.
+- Review generated SQL for locks, backfills, large indexes and destructive statements before merging.
 
 ## Important design notes
 
