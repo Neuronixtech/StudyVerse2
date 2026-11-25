@@ -158,13 +158,20 @@ function Hero() {
               { icon: <LayoutGrid />, value: "40+", label: "Practice tests" },
               { icon: <Star />, value: "4.8/5", label: "Avg. rating" },
             ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2.5">
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-100 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300 [&_svg]:size-4">{s.icon}</span>
-                <div>
-                  <dt className="sr-only">{s.label}</dt>
-                  <dd className="text-base font-extrabold text-fg">{s.value}</dd>
-                  <dd className="text-xs text-slate-500">{s.label}</dd>
-                </div>
+              <div key={s.label}>
+                <dt className="sr-only">{s.label}</dt>
+                <dd className="flex items-center gap-2.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-100 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300 [&_svg]:size-4" aria-hidden>
+                    {s.icon}
+                  </span>
+                  <span>
+                    <span className="block text-base font-extrabold text-fg">{s.value}</span>
+                    {/* Visible caption; screen readers already get it from the <dt> */}
+                    <span className="block text-xs text-slate-500" aria-hidden>
+                      {s.label}
+                    </span>
+                  </span>
+                </dd>
               </div>
             ))}
           </dl>
@@ -507,7 +514,7 @@ function Testimonials() {
               </span>
               <span>
                 <span className={cn("block text-sm font-bold", i === 1 ? "text-white" : "text-fg")}>{t.name}</span>
-                <span className={cn("block text-xs", i === 1 ? "text-brand-100" : "text-slate-500")}>{t.meta}</span>
+                <span className={cn("block text-xs", i === 1 ? "text-brand-50" : "text-slate-500")}>{t.meta}</span>
               </span>
             </figcaption>
           </figure>

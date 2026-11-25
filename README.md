@@ -13,6 +13,18 @@ npm run build      # production build (validates every route)
 npm run lint
 ```
 
+## Tests
+
+```bash
+npm test             # unit + component tests (Vitest + React Testing Library)
+npm run test:e2e     # builds the app and runs the Playwright journeys (Chromium)
+npm run test:e2e:all # Chromium + Firefox + WebKit (first: npx playwright install firefox webkit)
+npm run verify       # lint, type-check, unit/component and Chromium E2E
+npm run traceability # rebuild the case-by-case matrix from reports/ (see design/docs)
+```
+
+Every test runs at a fixed instant (20 Nov 2026, 10:00 IST) against the seeded mock data, so results don't depend on the machine or the date. The plan is in [design/docs/FRONTEND_TEST_PLAN.md](design/docs/FRONTEND_TEST_PLAN.md), and the case-by-case coverage is in [design/docs/TEST_TRACEABILITY.md](design/docs/TEST_TRACEABILITY.md). Shared fixtures and helpers live in `src/test/`, and Playwright specs in `e2e/`.
+
 ## Exploring the prototype
 
 Use the **Prototype** button in the bottom-left corner to:

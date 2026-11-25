@@ -198,12 +198,12 @@ export function SimPlayer({
         </div>
       )}
 
-      {/* Controls */}
-      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-3 pt-10 pb-2.5 sm:px-4">
+      {/* Controls — the gradient lets taps through (on small screens it overlaps the big play button); only the controls catch them */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-3 pt-10 pb-2.5 sm:px-4">
         <label className="sr-only" htmlFor={`seek-${lesson.id}`}>
           Seek
         </label>
-        <div className="relative h-4">
+        <div className="pointer-events-auto relative h-4">
           <div className="absolute top-1/2 h-1.5 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
             <div className="h-full bg-brand-400" style={{ width: `${pct}%` }} />
           </div>
@@ -223,7 +223,7 @@ export function SimPlayer({
           />
           <span className="pointer-events-none absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" style={{ left: `${pct}%` }} />
         </div>
-        <div className="mt-1.5 flex items-center gap-1 sm:gap-2">
+        <div className="pointer-events-auto mt-1.5 flex items-center gap-1 sm:gap-2">
           <CtrlButton label={playing ? "Pause" : "Play"} onClick={toggle}>
             {playing ? <Pause className="fill-current" /> : <Play className="fill-current" />}
           </CtrlButton>

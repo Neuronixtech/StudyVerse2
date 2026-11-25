@@ -240,9 +240,14 @@ export function ReviewRequestDialog({ requestId, onClose }: { requestId: string 
               setReasonError(null);
             }}
             aria-invalid={reasonError ? true : undefined}
+            aria-describedby={reasonError ? "reject-reason-error" : undefined}
             placeholder="Explain what's wrong and what the learner should do next"
           />
-          {reasonError && <p className="mt-1.5 text-xs font-semibold text-red-600 dark:text-red-400">{reasonError}</p>}
+          {reasonError && (
+            <p id="reject-reason-error" className="mt-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
+              {reasonError}
+            </p>
+          )}
         </div>
       )}
     </Modal>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, type ButtonVariant } from "./button";
@@ -45,9 +45,12 @@ export function Modal({
   dismissible?: boolean;
 }) {
   const ref = useDialog(open);
+  const id = useId();
   return (
     <dialog
       ref={ref}
+      aria-labelledby={`${id}-title`}
+      aria-describedby={description ? `${id}-desc` : undefined}
       onCancel={(e) => {
         e.preventDefault();
         if (dismissible) onClose();
@@ -65,8 +68,14 @@ export function Modal({
           <div className="flex items-start gap-4 border-b border-line px-5 py-4 sm:px-6">
             {icon && <div className="mt-0.5 shrink-0">{icon}</div>}
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-fg">{title}</h2>
-              {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+              <h2 id={`${id}-title`} className="text-lg font-bold text-fg">
+                {title}
+              </h2>
+              {description && (
+                <p id={`${id}-desc`} className="mt-1 text-sm text-slate-500">
+                  {description}
+                </p>
+              )}
             </div>
             {dismissible && (
               <button
@@ -168,9 +177,11 @@ export function Drawer({
   width?: string;
 }) {
   const ref = useDialog(open);
+  const id = useId();
   return (
     <dialog
       ref={ref}
+      aria-labelledby={`${id}-title`}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -187,7 +198,9 @@ export function Drawer({
       {open && (
         <>
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
-            <h2 className="text-base font-bold text-fg">{title}</h2>
+            <h2 id={`${id}-title`} className="text-base font-bold text-fg">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={onClose}

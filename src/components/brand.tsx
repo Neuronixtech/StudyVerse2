@@ -17,7 +17,7 @@ export function LogoMark({ className }: { className?: string }) {
 
 export function Logo({ href = "/", light, className, suffix }: { href?: string; light?: boolean; className?: string; suffix?: string }) {
   return (
-    <Link href={href} className={cn("inline-flex items-center gap-2.5 rounded-lg", className)} aria-label="StudyVerse home">
+    <Link href={href} className={cn("inline-flex items-center gap-2.5 rounded-lg", className)}>
       <LogoMark />
       <span className={cn("text-lg font-extrabold tracking-tight", light ? "text-white" : "text-fg")}>
         Study<span className={light ? "text-brand-200" : "text-brand-600 dark:text-brand-400"}>Verse</span>
@@ -27,6 +27,7 @@ export function Logo({ href = "/", light, className, suffix }: { href?: string; 
           {suffix}
         </span>
       )}
+      <span className="sr-only"> home</span>
     </Link>
   );
 }

@@ -51,7 +51,12 @@ export function OrderProgress({ order }: { order: BookOrder }) {
 }
 
 export function OrderTimeline({ events, audit = false }: { events: OrderEvent[]; audit?: boolean }) {
-  const list = [...events].filter((e) => audit || e.customerVisible).sort((a, b) => b.at - a.at);
+  // Newest first; events logged in the same millisecond (e.g. "Payment confirmed" then "Moved to Processing") keep their real order
+  const list = events
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => audit || e.customerVisible)
+    .sort((a, b) => b.e.at - a.e.at || b.i - a.i)
+    .map(({ e }) => e);
   return (
     <ol className="relative space-y-4 border-l-2 border-line pl-5">
       {list.map((e, i) => (
@@ -105,13 +110,13 @@ export function TotalsBlock({ subtotal, shipping, total, savings, freeThreshold 
           <dd className="font-semibold text-emerald-600 dark:text-emerald-400">−{formatINR(savings)}</dd>
         </div>
       )}
-      <div className="flex justify-between">
+      <div className="flex flex-wrap justify-between">
         <dt className="text-slate-500">Shipping</dt>
         <dd className="font-semibold text-fg">{shipping === 0 ? <span className="text-emerald-600 dark:text-emerald-400">Free</span> : formatINR(shipping)}</dd>
+        {freeThreshold !== undefined && shipping > 0 && subtotal < freeThreshold && (
+          <dd className="mt-2 w-full rounded-lg bg-brand-50 dark:bg-brand-400/10 px-3 py-2 text-xs text-brand-800 dark:text-brand-200">Add {formatINR(freeThreshold - subtotal)} more for free shipping.</dd>
+        )}
       </div>
-      {freeThreshold !== undefined && shipping > 0 && subtotal < freeThreshold && (
-        <p className="rounded-lg bg-brand-50 dark:bg-brand-400/10 px-3 py-2 text-xs text-brand-800 dark:text-brand-200">Add {formatINR(freeThreshold - subtotal)} more for free shipping.</p>
-      )}
       <div className="flex justify-between border-t border-line pt-3 text-base">
         <dt className="font-bold text-fg">Total payable</dt>
         <dd className="font-extrabold text-fg">{formatINR(total)}</dd>

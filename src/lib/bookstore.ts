@@ -210,6 +210,16 @@ export function nextOrderNumber(orders: BookOrder[]): string {
   return `SVB-${max + 1}`;
 }
 
+/**
+ * Static storefront routes that sit beside `/books/[slug]` (src/app/(site)/books/*).
+ * A book with one of these slugs would be unreachable, so the editor rejects them.
+ */
+export const RESERVED_BOOK_SLUGS = ["cart", "catalog", "checkout", "orders"] as const;
+
+export function isReservedBookSlug(slug: string): boolean {
+  return (RESERVED_BOOK_SLUGS as readonly string[]).includes(slug);
+}
+
 export function isValidPin(pin: string): boolean {
   return /^[1-9]\d{5}$/.test(pin.trim());
 }

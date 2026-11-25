@@ -14,6 +14,14 @@ import { cn } from "@/lib/utils";
 
 type Filter = "all" | QuestionEvaluation["outcome"];
 
+/** Label colour for each outcome chip — white only where the background is dark enough (4.5:1). */
+const CHIP_TEXT: Record<QuestionEvaluation["outcome"], string> = {
+  correct: "text-white",
+  incorrect: "text-white",
+  partial: "text-amber-950",
+  unattempted: "text-slate-700",
+};
+
 const OUTCOME: Record<QuestionEvaluation["outcome"], { label: string; tone: Tone; dot: string }> = {
   correct: { label: "Correct", tone: "green", dot: "bg-emerald-500" },
   incorrect: { label: "Incorrect", tone: "red", dot: "bg-red-500" },
@@ -191,7 +199,7 @@ export function AnswerReview({ attemptId }: { attemptId: string }) {
                     setFilter("all");
                     setSectionId("all");
                   }}
-                  className={cn("grid size-9 place-items-center rounded-lg text-xs font-bold text-white", OUTCOME[ev.outcome].dot, ev.outcome === "unattempted" && "text-slate-700")}
+                  className={cn("grid size-9 place-items-center rounded-lg text-xs font-bold", OUTCOME[ev.outcome].dot, CHIP_TEXT[ev.outcome])}
                   aria-label={`Question ${n}: ${OUTCOME[ev.outcome].label}`}
                 >
                   {n}

@@ -119,7 +119,7 @@ export function PrototypeToolbar({ sidebarOffset }: { sidebarOffset?: boolean } 
                   checked={state.prefs.simulateError}
                   onChange={(v) => setPrefs({ simulateError: v })}
                   label="Request errors"
-                  description="Catalog and list views fail until you retry."
+                  description="Catalog and list views and the video player fail until you retry."
                 />
               </section>
 
@@ -137,12 +137,12 @@ export function PrototypeToolbar({ sidebarOffset }: { sidebarOffset?: boolean } 
             type="button"
             onClick={() => setOpen(true)}
             className="flex items-center gap-2 rounded-full bg-ink py-2 pr-3.5 pl-2.5 text-xs font-bold text-white shadow-xl ring-4 ring-white/70 transition-transform hover:scale-105"
-            aria-label="Open prototype controls"
+            aria-haspopup="dialog"
           >
             <span className="grid size-6 place-items-center rounded-full bg-amber-400 text-ink">
               <FlaskConical className="size-3.5" />
             </span>
-            Prototype
+            Prototype<span className="sr-only"> controls</span>
             <span className="hidden max-w-32 truncate font-medium text-white/60 sm:inline">· {learner ? learner.name.split(" ")[0] : "Visitor"}</span>
           </button>
         )}

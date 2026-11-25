@@ -53,9 +53,10 @@ export function BookCard({ book }: { book: Book }) {
               addToCart(key, book.id, 1);
               toast({ title: "Added to cart", description: book.title, tone: "success" });
             }}
-            aria-label={st === "out" ? `${book.title} is out of stock` : `Add ${book.title} to cart`}
           >
             <ShoppingCart /> {st === "out" ? "Out of stock" : inCart ? `In cart (${inCart}) · Add another` : "Add to cart"}
+            {/* Name starts with the visible label so voice-control users can say what they see (WCAG 2.5.3) */}
+            <span className="sr-only">: {book.title}</span>
           </Button>
         </div>
       </div>
