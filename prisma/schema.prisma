@@ -306,6 +306,13 @@ enum AuthMethod {
   GOOGLE
 }
 
+// IMMEDIATE: answer review opens on submission. MANUAL: an admin releases or
+// withholds it (PLAN.md §6.5 "results/answer-key release behavior").
+enum ResultReleaseMode {
+  IMMEDIATE
+  MANUAL
+}
+
 enum ResultReleaseAction {
   RELEASED
   WITHHELD
@@ -1079,6 +1086,7 @@ model TestVersion {
   durationSeconds       Int               @map("duration_seconds")
   attemptLimit          Int?              @map("attempt_limit")
   markingConfig         Json              @map("marking_config")
+  resultReleaseMode     ResultReleaseMode @default(IMMEDIATE) @map("result_release_mode")
   answerReviewReleaseAt DateTime?         @map("answer_review_release_at") @db.Timestamptz(6)
   publishedAt           DateTime?         @map("published_at") @db.Timestamptz(6)
   createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
