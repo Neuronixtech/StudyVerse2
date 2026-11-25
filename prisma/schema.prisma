@@ -336,6 +336,16 @@ enum IdempotencyStatus {
 // exam attempts, subscriptions, orders and audit history stay intact. Removing or
 // anonymizing personal fields follows the account-deletion retention policy
 // (Backend_architecture.md §14.3; still to be decided).
+//
+// Foreign keys to users follow that policy:
+// - CASCADE: data owned only by the account (credentials, OAuth links, tokens,
+//   sessions, role and permission assignments, addresses, carts, notifications,
+//   lesson progress).
+// - RESTRICT: history and proof of who did what (orders, subscriptions, attempts,
+//   decisions, refunds, stock movements, events, audit logs), so an accidental
+//   hard delete fails instead of erasing it.
+// - SET NULL: incidental metadata only (course and video authorship, invitation
+//   acceptor, last settings editor, playback grants, the learner on auth events).
 model User {
   id                  String     @id @default(uuid()) @db.Uuid
   email               String     @db.VarChar(320)
@@ -521,7 +531,7 @@ model UserRole {
 
   user     User  @relation("UserRoleHolder", fields: [userId], references: [id], onDelete: Cascade)
   role     Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  assigner User? @relation("UserRoleAssigner", fields: [assignedBy], references: [id], onDelete: SetNull)
+  assigner User? @relation("UserRoleAssigner", fields: [assignedBy], references: [id], onDelete: Restrict)
 
   @@id([userId, roleId])
   @@index([roleId])
@@ -550,7 +560,7 @@ model UserPermission {
 
   user       User       @relation("UserPermissionHolder", fields: [userId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  grantedBy  User?      @relation("UserPermissionGrantor", fields: [grantedById], references: [id], onDelete: SetNull)
+  grantedBy  User?      @relation("UserPermissionGrantor", fields: [grantedById], references: [id], onDelete: Restrict)
 
   @@id([userId, permissionId])
   @@index([permissionId, effect])
@@ -815,7 +825,7 @@ model SubscriptionRequestEvent {
   createdAt   DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
 
   request SubscriptionRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
-  actor   User?               @relation("SubscriptionRequestEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor   User?               @relation("SubscriptionRequestEventActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([requestId, createdAt])
   @@index([actorUserId, createdAt])
@@ -838,7 +848,7 @@ model SubscriptionPeriod {
   user          User                 @relation("SubscriptionPeriodHolder", fields: [userId], references: [id], onDelete: Restrict)
   plan          SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
   sourceRequest SubscriptionRequest? @relation(fields: [sourceRequestId], references: [id], onDelete: SetNull)
-  activatedBy   User?                @relation("SubscriptionPeriodActivator", fields: [activatedById], references: [id], onDelete: SetNull)
+  activatedBy   User?                @relation("SubscriptionPeriodActivator", fields: [activatedById], references: [id], onDelete: Restrict)
 
   @@index([userId, status, startsAt, endsAt])
   @@map("subscription_periods")
@@ -1137,7 +1147,7 @@ model ResultReleaseEvent {
   createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
 
   testVersion TestVersion @relation(fields: [testVersionId], references: [id], onDelete: Restrict)
-  actor       User?       @relation("ResultReleaseActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor       User?       @relation("ResultReleaseActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([testVersionId, createdAt])
   @@map("result_release_events")
@@ -1414,7 +1424,7 @@ model InventoryMovement {
   createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
 
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
-  actor   User?   @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor   User?   @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([productId, createdAt])
   @@index([actorUserId, createdAt])
@@ -1612,7 +1622,7 @@ model OrderEvent {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  actor User? @relation("OrderEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor User? @relation("OrderEventActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([orderId, createdAt])
   @@map("order_events")
@@ -1631,7 +1641,7 @@ model CancellationRequest {
 
   order     Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
   requester User  @relation("CancellationRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-  reviewer  User? @relation("CancellationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewer  User? @relation("CancellationReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
 
   @@index([status, requestedAt])
   @@index([orderId, requestedAt])
@@ -1653,7 +1663,7 @@ model ReturnRequest {
 
   order     Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
   requester User           @relation("ReturnRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-  reviewer  User?          @relation("ReturnReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewer  User?          @relation("ReturnReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
   refunds   RefundRecord[]
 
   @@index([status, requestedAt])
@@ -1676,7 +1686,7 @@ model RefundRecord {
 
   order         Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
   returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id], onDelete: SetNull)
-  recorder      User?          @relation("RefundRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  recorder      User?          @relation("RefundRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
 
   @@index([orderId, status])
   @@map("refund_records")
@@ -1747,7 +1757,7 @@ model AuditLog {
   requestId   String?        @map("request_id") @db.VarChar(100)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([actorUserId, createdAt])
   @@index([targetType, targetId, createdAt])
