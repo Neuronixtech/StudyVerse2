@@ -5,8 +5,8 @@ export interface ShutdownOptions {
   timeoutMs?: number;
   exit?: (code: number) => void;
   signals?: readonly NodeJS.Signals[];
-  /** Where signal handlers are registered; tests pass an EventEmitter. */
-  target?: Pick<NodeJS.Process, "once">;
+  /** Where signal handlers are registered (process); tests pass an EventEmitter. */
+  target?: { once(signal: NodeJS.Signals, listener: () => void): unknown };
 }
 
 /**
