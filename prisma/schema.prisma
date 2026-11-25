@@ -596,9 +596,10 @@ model Subject {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  courses  CourseSubject[]
-  tests    TestSubject[]
-  products Product[]
+  courses      CourseSubject[]
+  tests        TestSubject[]
+  products     Product[]
+  testSections TestVersionSection[]
 
   @@map("subjects")
 }
@@ -1132,18 +1133,29 @@ model ResultReleaseEvent {
   @@map("result_release_events")
 }
 
+// A section of one test version: its order, title, optional subject, instructions
+// and, for section-timed tests (timingMode SECTION), its own time budget. Sections
+// belong to a version, so a published version's sections are frozen with it and a
+// draft version's sections are the editable configuration (PLAN.md §6.2-6.5).
+// A test may also have no sections; its questions then have no sectionId.
 model TestVersionSection {
   id              String  @id @default(uuid()) @db.Uuid
   testVersionId   String  @map("test_version_id") @db.Uuid
+  subjectId       String? @map("subject_id") @db.Uuid
   title           String  @db.VarChar(160)
   instructions    String? @db.Text
   sortOrder       Int     @map("sort_order")
   durationSeconds Int?    @map("duration_seconds")
 
-  testVersion TestVersion           @relation(fields: [testVersionId], references: [id], onDelete: Cascade)
-  questions   TestVersionQuestion[]
+  testVersion   TestVersion           @relation(fields: [testVersionId], references: [id], onDelete: Cascade)
+  subject       Subject?              @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  questions     TestVersionQuestion[]
+  attemptStates AttemptSectionState[]
 
   @@unique([testVersionId, sortOrder])
+  // Referenced by the composite foreign key on test_version_questions that keeps a
+  // question's section inside the question's own version.
+  @@unique([id, testVersionId])
   @@map("test_version_sections")
 }
 
@@ -1193,7 +1205,10 @@ model TestVersionQuestion {
   explanationSnapshot Json?        @map("explanation_snapshot")
 
   testVersion    TestVersion            @relation(fields: [testVersionId], references: [id], onDelete: Cascade)
-  section        TestVersionSection?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  // Composite key: the section must belong to this question's version. NO ACTION:
+  // a section that still has questions can't be deleted (move or delete them
+  // first); deleting a whole draft version still cascades to both.
+  section        TestVersionSection?    @relation(fields: [sectionId, testVersionId], references: [id, testVersionId], onDelete: NoAction)
   sourceQuestion QuestionBankItem?      @relation(fields: [sourceQuestionId], references: [id], onDelete: SetNull)
   attemptStates  AttemptQuestionState[]
 
@@ -1225,11 +1240,12 @@ model TestAttempt {
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  test        Test                   @relation(fields: [testId], references: [id], onDelete: Restrict)
-  testVersion TestVersion            @relation(fields: [testVersionId], references: [id], onDelete: Restrict)
-  user        User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  states      AttemptQuestionState[]
-  result      AttemptResult?
+  test          Test                   @relation(fields: [testId], references: [id], onDelete: Restrict)
+  testVersion   TestVersion            @relation(fields: [testVersionId], references: [id], onDelete: Restrict)
+  user          User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  states        AttemptQuestionState[]
+  sectionStates AttemptSectionState[]
+  result        AttemptResult?
 
   @@unique([userId, testId, attemptNumber])
   @@unique([guestTokenHash, testId, attemptNumber])
@@ -1256,6 +1272,33 @@ model AttemptQuestionState {
   @@unique([attemptId, testVersionQuestionId])
   @@index([attemptId, markedForReview])
   @@map("attempt_question_states")
+}
+
+// Server-side timer and lock state of one section within one attempt, for
+// section-timed tests. The server, not the browser, owns attempt timing
+// (Backend_architecture.md §10.3); an expired section becomes inaccessible
+// (PLAN.md §6.3). activeSince is set while this is the learner's current section;
+// elapsedMs is the time used in earlier visits; lockedAt is set when the section
+// closes (time used up, or the navigation policy closes it). Remaining time is
+// durationSeconds * 1000 - elapsedMs - (now - activeSince). This supports either
+// navigation policy left open by deferred decision 4 (revisit or not).
+// The section must belong to the attempt's test version (checked in the
+// assessments service, as for attempt_question_states).
+model AttemptSectionState {
+  id             String    @id @default(uuid()) @db.Uuid
+  attemptId      String    @map("attempt_id") @db.Uuid
+  sectionId      String    @map("section_id") @db.Uuid
+  firstEnteredAt DateTime? @map("first_entered_at") @db.Timestamptz(6)
+  activeSince    DateTime? @map("active_since") @db.Timestamptz(6)
+  elapsedMs      BigInt    @default(0) @map("elapsed_ms")
+  lockedAt       DateTime? @map("locked_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  attempt TestAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  section TestVersionSection @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, sectionId])
+  @@map("attempt_section_states")
 }
 
 model AttemptResult {

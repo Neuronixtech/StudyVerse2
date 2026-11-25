@@ -163,6 +163,16 @@ ALTER TABLE "payment_submissions"
   ADD CONSTRAINT "payment_submissions_rejection_reason_check"
   CHECK ("status" <> 'REJECTED' OR "rejection_reason" IS NOT NULL);
 
+-- Section timer state: time used is never negative, a locked section can't be the
+-- active one, and an attempt has at most one active section at a time.
+ALTER TABLE "attempt_section_states"
+  ADD CONSTRAINT "attempt_section_states_valid_state_check"
+  CHECK ("elapsed_ms" >= 0 AND NOT ("locked_at" IS NOT NULL AND "active_since" IS NOT NULL));
+
+CREATE UNIQUE INDEX "attempt_section_states_one_active_per_attempt"
+  ON "attempt_section_states" ("attempt_id")
+  WHERE "active_since" IS NOT NULL;
+
 -- A failed sign-in records a reason code.
 ALTER TABLE "auth_events"
   ADD CONSTRAINT "auth_events_failure_reason_check"
