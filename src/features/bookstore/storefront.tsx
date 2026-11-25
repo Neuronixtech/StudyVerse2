@@ -131,7 +131,8 @@ export function BookstoreLanding() {
         </div>
         <div>
           <h2 className="text-lg font-extrabold">Browse by subject</h2>
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          {/* One per row on phones: icon + name + count don't fit in a third of a 320–430 px screen */}
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {SUBJECTS.map((sub) => {
               const n = books.filter((b) => b.subjectIds.includes(sub.id)).length;
               return (
