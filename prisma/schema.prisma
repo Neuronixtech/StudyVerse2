@@ -344,13 +344,16 @@ model User {
   oauthAccounts                OAuthAccount[]
   authTokens                   AuthToken[]
   sessions                     UserSession[]
-  roles                        UserRole[]
-  permissionOverrides          UserPermission[]
+  roles                        UserRole[]                 @relation("UserRoleHolder")
+  roleAssignmentsMade          UserRole[]                 @relation("UserRoleAssigner")
+  permissionOverrides          UserPermission[]           @relation("UserPermissionHolder")
+  permissionGrantsMade         UserPermission[]           @relation("UserPermissionGrantor")
   invitationsSent              AdminInvitation[]          @relation("InvitationInviter")
   invitationsAccepted          AdminInvitation[]          @relation("InvitationAcceptor")
   subscriptionRequests         SubscriptionRequest[]      @relation("SubscriptionRequester")
   subscriptionRequestsReviewed SubscriptionRequest[]      @relation("SubscriptionRequestReviewer")
-  subscriptionPeriods          SubscriptionPeriod[]
+  subscriptionPeriods          SubscriptionPeriod[]       @relation("SubscriptionPeriodHolder")
+  subscriptionPeriodsActivated SubscriptionPeriod[]       @relation("SubscriptionPeriodActivator")
   lessonProgress               LessonProgress[]
   testAttempts                 TestAttempt[]
   playbackSessions             PlaybackSession[]
@@ -371,6 +374,8 @@ model User {
   authEvents                   AuthEvent[]
   subscriptionRequestEvents    SubscriptionRequestEvent[] @relation("SubscriptionRequestEventActor")
   resultReleaseEvents          ResultReleaseEvent[]       @relation("ResultReleaseActor")
+  orderEventsRecorded          OrderEvent[]               @relation("OrderEventActor")
+  storeSettingsUpdated         StoreSetting[]             @relation("StoreSettingUpdater")
 
   @@index([status, createdAt])
   @@map("users")
@@ -504,8 +509,9 @@ model UserRole {
   assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
   assignedBy String?  @map("assigned_by") @db.Uuid
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  user     User  @relation("UserRoleHolder", fields: [userId], references: [id], onDelete: Cascade)
+  role     Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  assigner User? @relation("UserRoleAssigner", fields: [assignedBy], references: [id], onDelete: SetNull)
 
   @@id([userId, roleId])
   @@index([roleId])
@@ -532,8 +538,9 @@ model UserPermission {
   grantedById  String?          @map("granted_by_id") @db.Uuid
   createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User       @relation("UserPermissionHolder", fields: [userId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  grantedBy  User?      @relation("UserPermissionGrantor", fields: [grantedById], references: [id], onDelete: SetNull)
 
   @@id([userId, permissionId])
   @@index([permissionId, effect])
@@ -817,9 +824,10 @@ model SubscriptionPeriod {
   revocationReason String?                  @map("revocation_reason") @db.Text
   createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  user          User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user          User                 @relation("SubscriptionPeriodHolder", fields: [userId], references: [id], onDelete: Restrict)
   plan          SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
   sourceRequest SubscriptionRequest? @relation(fields: [sourceRequestId], references: [id], onDelete: SetNull)
+  activatedBy   User?                @relation("SubscriptionPeriodActivator", fields: [activatedById], references: [id], onDelete: SetNull)
 
   @@index([userId, status, startsAt, endsAt])
   @@map("subscription_periods")
@@ -1549,6 +1557,7 @@ model OrderEvent {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor User? @relation("OrderEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([orderId, createdAt])
   @@map("order_events")
@@ -1624,6 +1633,8 @@ model StoreSetting {
   description String?  @db.Text
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById String?  @map("updated_by_id") @db.Uuid
+
+  updatedBy User? @relation("StoreSettingUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("store_settings")
 }
