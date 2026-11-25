@@ -1075,12 +1075,19 @@ model TestVersionQuestion {
   @@map("test_version_questions")
 }
 
+// Exactly one actor per attempt: a learner (userId) or an anonymous visitor
+// (guestTokenHash, the hash of the visitor's cookie token), enforced by a CHECK in
+// extra-constraints.sql. Visitors may retake the free demo like learners do
+// (PLAN.md §6.5: unlimited attempts by default), so the guest token is not unique.
+// Attempts are numbered per actor and test. Associating a guest attempt with a
+// learner on sign-in sets userId, clears guestTokenHash and renumbers it after the
+// learner's existing attempts, in one transaction.
 model TestAttempt {
   id                   String        @id @default(uuid()) @db.Uuid
   testId               String        @map("test_id") @db.Uuid
   testVersionId        String        @map("test_version_id") @db.Uuid
   userId               String?       @map("user_id") @db.Uuid
-  guestTokenHash       String?       @unique @map("guest_token_hash") @db.VarChar(255)
+  guestTokenHash       String?       @map("guest_token_hash") @db.VarChar(255)
   guestFingerprintHash String?       @map("guest_fingerprint_hash") @db.VarChar(255)
   status               AttemptStatus @default(IN_PROGRESS)
   attemptNumber        Int           @map("attempt_number")
@@ -1097,7 +1104,9 @@ model TestAttempt {
   result      AttemptResult?
 
   @@unique([userId, testId, attemptNumber])
+  @@unique([guestTokenHash, testId, attemptNumber])
   @@index([userId, testId, startedAt])
+  @@index([guestTokenHash, testId, startedAt])
   @@index([testVersionId, status])
   @@index([status, expiresAt])
   @@map("test_attempts")
@@ -1274,10 +1283,17 @@ model Address {
   @@map("addresses")
 }
 
+// A cart belongs to a learner or to an anonymous visitor's cookie token (CHECK in
+// extra-constraints.sql). Partial unique indexes allow one ACTIVE cart per learner
+// and per guest token. The guest token is deliberately not unique on its own: the
+// same browser must be able to start a new cart after an earlier one is merged,
+// converted or abandoned. On sign-in the guest cart is transferred to the learner
+// (userId set, guestTokenHash cleared) or merged into the learner's active cart
+// (BOOKSTORE_SPEC §3.2).
 model Cart {
   id             String     @id @default(uuid()) @db.Uuid
   userId         String?    @map("user_id") @db.Uuid
-  guestTokenHash String?    @unique @map("guest_token_hash") @db.VarChar(255)
+  guestTokenHash String?    @map("guest_token_hash") @db.VarChar(255)
   status         CartStatus @default(ACTIVE)
   expiresAt      DateTime?  @map("expires_at") @db.Timestamptz(6)
   createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
