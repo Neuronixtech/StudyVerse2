@@ -37,7 +37,7 @@ Every test runs at a fixed instant (20 Nov 2026, 10:00 IST) against freshly gene
 
 **Results in §5** come from a clean checkout of commit `41f6c75` on macOS (a detached worktree, fresh `npm ci`, no `.next`, Node 22.14.0, retries off), so they include the CI fixes below. In that run lint and type-check exited 0, Vitest passed 488 of 488, and Playwright passed 690 of 690 (230 tests × Chromium, Firefox and WebKit) with nothing flaky or skipped. That covers all 138 A11Y-007 contrast checks in each browser. The pull request's CI run is still the reference for Linux.
 
-**Local working copies.** `npm run typecheck`, `npm run build` and therefore `npm run test:e2e` fail if TypeScript files that aren't part of the frontend sit anywhere in the repository. The cause is the root `tsconfig.json`, which includes `**/*.ts`. The untracked Prisma starter in `design/studyverse-prisma-initial*/` (its `prisma7.config.ts` can't resolve `prisma/config`) triggers this today. A clean checkout isn't affected. The fix is to exclude non-frontend folders (`design`, `apps`) in the root `tsconfig.json`, which is scheduled with the backend foundation work.
+**Non-frontend TypeScript.** The root `tsconfig.json` includes `**/*.ts`, so TypeScript outside the frontend would break `npm run typecheck`, `npm run build` and `npm run test:e2e`. `design/` is excluded, which covers the Prisma starter in `design/studyverse-prisma-initial/` (its `prisma7.config.ts` imports `prisma/config`, which the frontend doesn't install). Exclude `apps/` the same way when the backend package is added.
 
 **CI history**
 
