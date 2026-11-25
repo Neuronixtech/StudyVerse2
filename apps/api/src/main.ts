@@ -7,6 +7,7 @@ import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module.js";
 import { APP_CREATE_OPTIONS, configureApp } from "./app.setup.js";
 import { ConfigValidationError, loadConfig, type AppConfig } from "./config/app-config.js";
+import { installShutdownHandlers } from "./shutdown.js";
 
 /**
  * Reads apps/api/.env when present (local development). Deployments set real
@@ -38,10 +39,11 @@ async function bootstrap(): Promise<void> {
     // Hold startup logs until the structured logger is ready.
     bufferLogs: true,
   });
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
   configureApp(app, config);
   // Close the HTTP server and database pool cleanly on SIGTERM/SIGINT (container stop).
-  app.enableShutdownHooks();
+  installShutdownHandlers(app, logger);
   await app.listen(config.http.port, config.http.host);
 }
 
