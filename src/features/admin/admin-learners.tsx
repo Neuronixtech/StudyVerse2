@@ -101,7 +101,7 @@ export function LearnersPage() {
                         <Link href={`/admin/learners/${l.id}`} className="flex items-center gap-3">
                           <Avatar name={l.name} size="sm" />
                           <span className="min-w-0">
-                            <span className="block font-semibold text-ink hover:text-brand-700">{l.name}</span>
+                            <span className="block font-semibold text-fg hover:text-brand-700 dark:hover:text-brand-300">{l.name}</span>
                             <span className="block truncate text-xs text-slate-500">{l.email}</span>
                           </span>
                         </Link>
@@ -149,7 +149,7 @@ export function LearnerDetail({ learnerId }: { learnerId: string }) {
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/learners" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-ink">
+      <Link href="/admin/learners" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg">
         <ArrowLeft className="size-4" /> Learners
       </Link>
       <Card className="p-5 sm:p-6">
@@ -208,7 +208,7 @@ export function LearnerDetail({ learnerId }: { learnerId: string }) {
               <ul className="divide-y divide-line">
                 {[...sub.periods].reverse().map((p) => (
                   <li key={p.id} className="px-5 py-3 text-sm">
-                    <p className="font-semibold text-ink">
+                    <p className="font-semibold text-fg">
                       {p.days} days · {formatDate(p.startsAt)} → {formatDate(p.expiresAt)}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -228,7 +228,7 @@ export function LearnerDetail({ learnerId }: { learnerId: string }) {
                 {sub.requests.map((r) => (
                   <li key={r.id} className="flex items-center gap-3 px-5 py-3">
                     <div className="min-w-0 flex-1 text-sm">
-                      <p className="font-semibold text-ink">
+                      <p className="font-semibold text-fg">
                         {r.planDays} days · {formatINR(r.amount)}
                       </p>
                       <p className="text-xs text-slate-500">
@@ -260,7 +260,7 @@ export function LearnerDetail({ learnerId }: { learnerId: string }) {
               {progress.map(({ c, p }) => (
                 <li key={c.id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:gap-6">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-ink">
+                    <p className="text-sm font-semibold text-fg">
                       {c.title} {c.status === "archived" && <Badge tone="slate" size="xs">Archived</Badge>}
                     </p>
                     <p className="text-xs text-slate-500">Last activity {p.last ? relativeTime(p.last.updatedAt, now) : "—"}</p>
@@ -296,7 +296,7 @@ export function LearnerDetail({ learnerId }: { learnerId: string }) {
                 <tbody>
                   {attempts.map((a) => (
                     <tr key={a.id} className="border-t border-line">
-                      <td className="px-5 py-3 font-semibold text-ink">{a.snapshot.title}</td>
+                      <td className="px-5 py-3 font-semibold text-fg">{a.snapshot.title}</td>
                       <td className="px-3 py-3">
                         {a.result.score}/{a.result.maxScore} <span className="text-xs text-slate-500">({percent(Math.max(0, a.result.score), a.result.maxScore)}%)</span>
                       </td>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowRight, CircleCheck, Eye, EyeOff, FlaskConical, MailCheck } from "lucide-react";
+import { ArrowRight, CircleCheck, Eye, EyeOff, FlaskConical, MailCheck, ShoppingCart } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Callout } from "@/components/ui/feedback";
 import { Checkbox, Field, Input, Select } from "@/components/ui/form";
@@ -27,7 +27,7 @@ function PasswordInput(props: React.ComponentProps<typeof Input>) {
       <button
         type="button"
         onClick={() => setShow((s) => !s)}
-        className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:text-ink"
+        className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:text-fg"
         aria-label={show ? "Hide password" : "Show password"}
       >
         {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -100,7 +100,7 @@ export function LoginForm() {
       <h1 className="text-3xl font-extrabold tracking-tight">Log in</h1>
       <p className="mt-2 text-slate-500">
         New to StudyVerse?{" "}
-        <Link href={`/signup${params.size ? `?${params}` : ""}`} className="font-semibold text-brand-700 hover:underline">
+        <Link href={`/signup${params.size ? `?${params}` : ""}`} className="font-semibold text-brand-700 dark:text-brand-300 hover:underline">
           Create a free account
         </Link>
       </p>
@@ -111,6 +111,11 @@ export function LoginForm() {
         </Callout>
       )}
 
+      {next.startsWith("/books/checkout") && (
+        <Callout tone="brand" className="mt-6" icon={<ShoppingCart />} title="Your cart is saved">
+          Log in to continue to checkout — the books in your cart will be waiting.
+        </Callout>
+      )}
       <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
         {errors.form && (
           <Callout tone="danger" title={errors.form}>
@@ -127,14 +132,15 @@ export function LoginForm() {
         <Field
           label={
             <span className="flex items-center justify-between">
-              Password
-              <Link href="/forgot-password" className="text-xs font-semibold text-brand-700 hover:underline">
+              <span>
+                Password<span className="ml-0.5 text-red-500" aria-hidden>*</span>
+              </span>
+              <Link href="/forgot-password" className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                 Forgot password?
               </Link>
             </span>
           }
           error={errors.password}
-          required
         >
           {(p) => <PasswordInput {...p} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />}
         </Field>
@@ -146,11 +152,11 @@ export function LoginForm() {
       <Divider label="or" />
       <GoogleButton />
 
-      <div className="mt-8 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4">
-        <p className="flex items-center gap-2 text-xs font-bold tracking-wide text-amber-900 uppercase">
+      <div className="mt-8 rounded-2xl border border-dashed border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/10 p-4">
+        <p className="flex items-center gap-2 text-xs font-bold tracking-wide text-amber-900 dark:text-amber-100 uppercase">
           <FlaskConical className="size-3.5" /> Demo learner accounts
         </p>
-        <p className="mt-1 text-xs text-amber-900/80">Sign-in is simulated. Pick a persona to explore each subscription state.</p>
+        <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-100/80">Sign-in is simulated. Pick a persona to explore each subscription state.</p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {LEARNER_PERSONAS.map((p) => {
             const l = state.learners.find((x) => x.id === p.id);
@@ -160,9 +166,9 @@ export function LoginForm() {
                 key={p.id}
                 type="button"
                 onClick={() => complete(l.id, l.name)}
-                className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-left transition-colors hover:border-brand-400"
+                className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-surface px-3 py-2 text-left transition-colors hover:border-brand-400"
               >
-                <span className="block text-sm font-semibold text-ink">{l.name}</span>
+                <span className="block text-sm font-semibold text-fg">{l.name}</span>
                 <span className="block text-xs text-slate-500">{p.label}</span>
               </button>
             );
@@ -172,7 +178,7 @@ export function LoginForm() {
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Are you an admin?{" "}
-        <Link href="/admin/login" className="font-semibold text-brand-700 hover:underline">
+        <Link href="/admin/login" className="font-semibold text-brand-700 dark:text-brand-300 hover:underline">
           Admin console login
         </Link>
       </p>
@@ -242,7 +248,7 @@ export function SignupForm() {
       <h1 className="text-3xl font-extrabold tracking-tight">Create your account</h1>
       <p className="mt-2 text-slate-500">
         Already have one?{" "}
-        <Link href={`/login${params.size ? `?${params}` : ""}`} className="font-semibold text-brand-700 hover:underline">
+        <Link href={`/login${params.size ? `?${params}` : ""}`} className="font-semibold text-brand-700 dark:text-brand-300 hover:underline">
           Log in
         </Link>
       </p>
@@ -252,6 +258,11 @@ export function SignupForm() {
         </Callout>
       )}
 
+      {next.startsWith("/books/checkout") && (
+        <Callout tone="brand" className="mt-6" icon={<ShoppingCart />} title="Your cart is saved">
+          Create your account to continue to checkout — your cart comes with you.
+        </Callout>
+      )}
       <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
         <Field label="Full name" error={errors.name} required>
           {(p) => <Input {...p} autoComplete="name" value={v.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Ananya Sharma" />}
@@ -310,7 +321,7 @@ export function SignupForm() {
             description="Prototype only — no account is created on a server."
             aria-invalid={errors.terms ? true : undefined}
           />
-          {errors.terms && <p className="mt-1.5 ml-7 text-xs font-medium text-red-600">{errors.terms}</p>}
+          {errors.terms && <p className="mt-1.5 ml-7 text-xs font-medium text-red-600 dark:text-red-400">{errors.terms}</p>}
         </div>
         <Button type="submit" block size="lg" loading={loading}>
           Create account <ArrowRight />
@@ -334,12 +345,12 @@ export function ForgotPasswordForm() {
   if (sent) {
     return (
       <div className="text-center">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-50 dark:bg-brand-400/10 text-brand-600 dark:text-brand-400">
           <MailCheck className="size-7" />
         </span>
         <h1 className="mt-5 text-2xl font-extrabold">Check your inbox</h1>
         <p className="mt-2 text-slate-500">
-          If an account exists for <strong className="text-ink">{email}</strong>, you&apos;ll receive a link to reset your password.
+          If an account exists for <strong className="text-fg">{email}</strong>, you&apos;ll receive a link to reset your password.
         </p>
         <Callout tone="warning" className="mt-6 text-left" icon={<FlaskConical />} title="Prototype: no email is sent">
           Use the button below to open the reset screen directly.
@@ -382,7 +393,7 @@ export function ForgotPasswordForm() {
         </Button>
       </form>
       <p className="mt-6 text-center text-sm">
-        <Link href="/login" className="font-semibold text-brand-700 hover:underline">
+        <Link href="/login" className="font-semibold text-brand-700 dark:text-brand-300 hover:underline">
           Back to log in
         </Link>
       </p>
@@ -401,7 +412,7 @@ export function ResetPasswordForm() {
   if (done) {
     return (
       <div className="text-center">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <CircleCheck className="size-7" />
         </span>
         <h1 className="mt-5 text-2xl font-extrabold">Password updated</h1>

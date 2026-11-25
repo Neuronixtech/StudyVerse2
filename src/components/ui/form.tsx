@@ -5,11 +5,11 @@ import { ChevronDown, CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const control =
-  "block w-full rounded-lg border bg-white text-sm text-ink placeholder:text-slate-400 shadow-xs transition-[border-color,box-shadow] outline-none focus:border-brand-500 focus:shadow-ring disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
+  "block w-full rounded-lg border bg-surface text-sm text-fg placeholder:text-slate-400 shadow-xs transition-[border-color,box-shadow] outline-none focus:border-brand-500 focus:shadow-ring disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 
 export function Label({ className, children, ...rest }: ComponentProps<"label">) {
   return (
-    <label className={cn("block text-sm font-semibold text-ink", className)} {...rest}>
+    <label className={cn("block text-sm font-semibold text-fg", className)} {...rest}>
       {children}
     </label>
   );
@@ -38,7 +38,7 @@ export function Field({ label, hint, error, required, className, children }: Fie
       )}
       {children({ id, "aria-invalid": error ? true : undefined, "aria-describedby": describedBy })}
       {error ? (
-        <p id={`${id}-error`} className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+        <p id={`${id}-error`} className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
           <CircleAlert className="size-3.5 shrink-0" aria-hidden />
           {error}
         </p>
@@ -97,7 +97,7 @@ export function Checkbox({
         {...rest}
       />
       <span className="text-sm">
-        <span className="font-medium text-ink">{label}</span>
+        <span className="font-medium text-fg">{label}</span>
         {description && <span className="mt-0.5 block text-xs text-slate-500">{description}</span>}
       </span>
     </label>
@@ -123,7 +123,7 @@ export function Switch({
   return (
     <div className={cn("flex items-start justify-between gap-4", className)}>
       <div className="min-w-0">
-        <label htmlFor={id} className="block cursor-pointer text-sm font-semibold text-ink">
+        <label htmlFor={id} className="block cursor-pointer text-sm font-semibold text-fg">
           {label}
         </label>
         {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
@@ -167,7 +167,7 @@ export function ChipGroup<T extends string>({
 }) {
   return (
     <fieldset className="space-y-1.5">
-      {label && <legend className="mb-1.5 text-sm font-semibold text-ink">{label}</legend>}
+      {label && <legend className="mb-1.5 text-sm font-semibold text-fg">{label}</legend>}
       <div className="flex flex-wrap gap-2">
         {options.map((o) => {
           const active = value.includes(o.value);
@@ -182,7 +182,7 @@ export function ChipGroup<T extends string>({
                 "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50",
                 active
                   ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-line-strong bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700",
+                  : "border-line-strong bg-surface text-slate-600 hover:border-brand-300 hover:text-brand-700 dark:hover:text-brand-300",
               )}
             >
               {o.label}
@@ -190,7 +190,7 @@ export function ChipGroup<T extends string>({
           );
         })}
       </div>
-      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+      {error && <p className="text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
     </fieldset>
   );
 }
@@ -210,7 +210,8 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full rounded-lg bg-slate-100 p-1", className)}>
+    // flex-wrap: segments move to a second row only when they don't fit (narrow phones), never sideways off-screen
+    <div role="radiogroup" aria-label={label} className={cn("inline-flex max-w-full flex-wrap rounded-lg bg-slate-100 p-1", className)}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -220,7 +221,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-            value === o.value ? "bg-white text-ink shadow-sm" : "text-slate-500 hover:text-ink",
+            value === o.value ? "bg-surface text-fg shadow-sm" : "text-slate-500 hover:text-fg",
           )}
         >
           {o.label}

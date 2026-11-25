@@ -14,6 +14,14 @@ import { cn } from "@/lib/utils";
 
 type Filter = "all" | QuestionEvaluation["outcome"];
 
+/** Label colour for each outcome chip — white only where the background is dark enough (4.5:1). */
+const CHIP_TEXT: Record<QuestionEvaluation["outcome"], string> = {
+  correct: "text-white",
+  incorrect: "text-white",
+  partial: "text-amber-950",
+  unattempted: "text-slate-700",
+};
+
 const OUTCOME: Record<QuestionEvaluation["outcome"], { label: string; tone: Tone; dot: string }> = {
   correct: { label: "Correct", tone: "green", dot: "bg-emerald-500" },
   incorrect: { label: "Incorrect", tone: "red", dot: "bg-red-500" },
@@ -113,9 +121,9 @@ export function AnswerReview({ attemptId }: { attemptId: string }) {
                 const response = attempt.responses[q.id];
                 const o = OUTCOME[ev.outcome];
                 return (
-                  <li key={q.id} id={`q-${n}`} className="scroll-mt-24 rounded-2xl border border-line bg-white p-5 shadow-card sm:p-6">
+                  <li key={q.id} id={`q-${n}`} className="scroll-mt-24 rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-extrabold text-ink">Q{n}</span>
+                      <span className="text-sm font-extrabold text-fg">Q{n}</span>
                       <span className="text-xs text-slate-400">·</span>
                       <span className="text-xs font-semibold text-slate-500">{s.name}</span>
                       <Badge tone="slate" size="xs">
@@ -123,22 +131,22 @@ export function AnswerReview({ attemptId }: { attemptId: string }) {
                       </Badge>
                       <span className="ml-auto flex items-center gap-2">
                         <Badge tone={o.tone}>{o.label}</Badge>
-                        <span className={cn("text-sm font-extrabold", ev.marks > 0 ? "text-emerald-700" : ev.marks < 0 ? "text-red-600" : "text-slate-500")}>
+                        <span className={cn("text-sm font-extrabold", ev.marks > 0 ? "text-emerald-700 dark:text-emerald-300" : ev.marks < 0 ? "text-red-600 dark:text-red-400" : "text-slate-500")}>
                           {ev.marks > 0 ? `+${ev.marks}` : ev.marks}
                         </span>
                       </span>
                     </div>
-                    <p className="mt-3 leading-relaxed font-medium text-ink">{q.text}</p>
+                    <p className="mt-3 leading-relaxed font-medium text-fg">{q.text}</p>
 
                     {q.type === "numerical" ? (
                       <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className={cn("rounded-xl p-3 ring-1", ev.outcome === "correct" ? "bg-emerald-50 ring-emerald-200" : ev.outcome === "unattempted" ? "bg-slate-50 ring-slate-200" : "bg-red-50 ring-red-200")}>
+                        <div className={cn("rounded-xl p-3 ring-1", ev.outcome === "correct" ? "bg-emerald-50 dark:bg-emerald-500/10 ring-emerald-200 dark:ring-emerald-500/30" : ev.outcome === "unattempted" ? "bg-slate-50 ring-slate-200" : "bg-red-50 dark:bg-red-500/10 ring-red-200 dark:ring-red-500/30")}>
                           <dt className="text-xs font-semibold text-slate-500">Your answer</dt>
-                          <dd className="font-mono text-lg font-bold text-ink">{formatResponse(q, response)}</dd>
+                          <dd className="font-mono text-lg font-bold text-fg">{formatResponse(q, response)}</dd>
                         </div>
-                        <div className="rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-200">
-                          <dt className="text-xs font-semibold text-emerald-800">Correct answer</dt>
-                          <dd className="font-mono text-lg font-bold text-emerald-900">{formatCorrect(q)}</dd>
+                        <div className="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 p-3 ring-1 ring-emerald-200 dark:ring-emerald-500/30">
+                          <dt className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">Correct answer</dt>
+                          <dd className="font-mono text-lg font-bold text-emerald-900 dark:text-emerald-100">{formatCorrect(q)}</dd>
                         </div>
                       </dl>
                     ) : (
@@ -151,23 +159,23 @@ export function AnswerReview({ attemptId }: { attemptId: string }) {
                               key={opt.id}
                               className={cn(
                                 "flex items-center gap-3 rounded-xl border-2 px-3.5 py-2.5 text-sm",
-                                correct ? "border-emerald-400 bg-emerald-50" : chosen ? "border-red-300 bg-red-50" : "border-line",
+                                correct ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10" : chosen ? "border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10" : "border-line",
                               )}
                             >
                               <span className={cn("grid size-6 shrink-0 place-items-center rounded-md text-xs font-bold", correct ? "bg-emerald-600 text-white" : chosen ? "bg-red-500 text-white" : "bg-slate-100 text-slate-600")}>
                                 {String.fromCharCode(65 + i)}
                               </span>
-                              <span className="flex-1 text-ink">{opt.text}</span>
+                              <span className="flex-1 text-fg">{opt.text}</span>
                               {chosen && <span className="text-xs font-semibold text-slate-500">Your choice</span>}
-                              {correct ? <Check className="size-4 text-emerald-600" aria-label="Correct option" /> : chosen ? <X className="size-4 text-red-500" aria-label="Incorrect choice" /> : null}
+                              {correct ? <Check className="size-4 text-emerald-600 dark:text-emerald-400" aria-label="Correct option" /> : chosen ? <X className="size-4 text-red-500" aria-label="Incorrect choice" /> : null}
                             </li>
                           );
                         })}
                       </ul>
                     )}
 
-                    <div className="mt-4 rounded-xl bg-brand-50/70 p-4 ring-1 ring-brand-100">
-                      <p className="flex items-center gap-2 text-sm font-bold text-brand-800">
+                    <div className="mt-4 rounded-xl bg-brand-50/70 dark:bg-brand-400/10 p-4 ring-1 ring-brand-100 dark:ring-brand-400/20">
+                      <p className="flex items-center gap-2 text-sm font-bold text-brand-800 dark:text-brand-200">
                         <Lightbulb className="size-4" /> Explanation
                       </p>
                       <p className="mt-1 text-sm leading-relaxed text-slate-700">{q.explanation}</p>
@@ -180,8 +188,8 @@ export function AnswerReview({ attemptId }: { attemptId: string }) {
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-24 rounded-2xl border border-line bg-white p-4 shadow-card">
-            <p className="text-sm font-bold text-ink">Jump to question</p>
+          <div className="sticky top-24 rounded-2xl border border-line bg-surface p-4 shadow-card">
+            <p className="text-sm font-bold text-fg">Jump to question</p>
             <div className="mt-3 grid grid-cols-5 gap-2">
               {items.map(({ n, ev }) => (
                 <a
@@ -191,7 +199,7 @@ export function AnswerReview({ attemptId }: { attemptId: string }) {
                     setFilter("all");
                     setSectionId("all");
                   }}
-                  className={cn("grid size-9 place-items-center rounded-lg text-xs font-bold text-white", OUTCOME[ev.outcome].dot, ev.outcome === "unattempted" && "text-slate-700")}
+                  className={cn("grid size-9 place-items-center rounded-lg text-xs font-bold", OUTCOME[ev.outcome].dot, CHIP_TEXT[ev.outcome])}
                   aria-label={`Question ${n}: ${OUTCOME[ev.outcome].label}`}
                 >
                   {n}

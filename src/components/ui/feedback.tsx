@@ -3,7 +3,7 @@ import { CircleAlert, CircleCheck, FlaskConical, Info, RotateCcw, TriangleAlert 
 import { cn } from "@/lib/utils";
 
 export function Card({ className, children, as: As = "div" }: { className?: string; children: ReactNode; as?: "div" | "section" | "article" | "li" }) {
-  return <As className={cn("rounded-2xl border border-line bg-white shadow-card", className)}>{children}</As>;
+  return <As className={cn("rounded-2xl border border-line bg-surface shadow-card", className)}>{children}</As>;
 }
 
 export function CardHeader({
@@ -20,7 +20,7 @@ export function CardHeader({
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4", className)}>
       <div className="min-w-0">
-        <h2 className="text-base font-bold text-ink">{title}</h2>
+        <h2 className="text-base font-bold text-fg">{title}</h2>
         {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
       </div>
       {action}
@@ -36,7 +36,7 @@ export function SkeletonCards({ count = 6, className }: { count?: number; classN
   return (
     <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-3", className)} role="status" aria-label="Loading">
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="overflow-hidden rounded-2xl border border-line bg-white p-3">
+        <div key={i} className="overflow-hidden rounded-2xl border border-line bg-surface p-3">
           <Skeleton className="aspect-[16/10] w-full rounded-xl" />
           <div className="space-y-3 p-2 pt-4">
             <Skeleton className="h-4 w-3/4" />
@@ -64,9 +64,9 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col items-center rounded-2xl border border-dashed border-line-strong bg-white px-6 py-12 text-center", className)}>
-      {icon && <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600 [&_svg]:size-7">{icon}</div>}
-      <h3 className="text-base font-bold text-ink">{title}</h3>
+    <div className={cn("flex flex-col items-center rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-12 text-center", className)}>
+      {icon && <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-brand-50 dark:bg-brand-400/10 text-brand-600 dark:text-brand-400 [&_svg]:size-7">{icon}</div>}
+      <h3 className="text-base font-bold text-fg">{title}</h3>
       {description && <p className="mt-1.5 max-w-sm text-sm text-slate-500">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -75,11 +75,11 @@ export function EmptyState({
 
 export function ErrorState({ title = "Something went wrong", description, onRetry }: { title?: string; description?: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="flex flex-col items-center rounded-2xl border border-red-200 bg-red-50/60 px-6 py-12 text-center">
-      <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-red-100 text-red-600">
+    <div role="alert" className="flex flex-col items-center rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50/60 dark:bg-red-500/10 px-6 py-12 text-center">
+      <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">
         <TriangleAlert className="size-7" />
       </div>
-      <h3 className="text-base font-bold text-ink">{title}</h3>
+      <h3 className="text-base font-bold text-fg">{title}</h3>
       <p className="mt-1.5 max-w-sm text-sm text-slate-600">
         {description ?? "We couldn't load this content. This is a simulated error from the prototype toolbar."}
       </p>
@@ -87,7 +87,7 @@ export function ErrorState({ title = "Something went wrong", description, onRetr
         <button
           type="button"
           onClick={onRetry}
-          className="mt-5 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+          className="mt-5 inline-flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-500/30 bg-surface px-4 py-2 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
         >
           <RotateCcw className="size-4" /> Try again
         </button>
@@ -97,11 +97,11 @@ export function ErrorState({ title = "Something went wrong", description, onRetr
 }
 
 const calloutTones = {
-  info: { box: "border-sky-200 bg-sky-50 text-sky-900", icon: <Info /> },
-  success: { box: "border-emerald-200 bg-emerald-50 text-emerald-900", icon: <CircleCheck /> },
-  warning: { box: "border-amber-200 bg-amber-50 text-amber-900", icon: <TriangleAlert /> },
-  danger: { box: "border-red-200 bg-red-50 text-red-900", icon: <CircleAlert /> },
-  brand: { box: "border-brand-200 bg-brand-50 text-brand-900", icon: <Info /> },
+  info: { box: "border-sky-200 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10 text-sky-900 dark:text-sky-100", icon: <Info /> },
+  success: { box: "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-900 dark:text-emerald-100", icon: <CircleCheck /> },
+  warning: { box: "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-100", icon: <TriangleAlert /> },
+  danger: { box: "border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-900 dark:text-red-100", icon: <CircleAlert /> },
+  brand: { box: "border-brand-200 dark:border-brand-400/30 bg-brand-50 dark:bg-brand-400/10 text-brand-900 dark:text-brand-100", icon: <Info /> },
 };
 
 export function Callout({
@@ -135,7 +135,7 @@ export function Callout({
 /** Inline marker for anything that would otherwise look like a real backend action */
 export function SimulatedNote({ children, className }: { children?: ReactNode; className?: string }) {
   return (
-    <p className={cn("flex items-start gap-2 text-xs text-amber-800", className)}>
+    <p className={cn("flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200", className)}>
       <FlaskConical className="mt-px size-3.5 shrink-0" aria-hidden />
       <span>{children ?? "Prototype: this action is simulated and only stored in your browser."}</span>
     </p>
@@ -195,27 +195,27 @@ export function StatCard({
   className?: string;
 }) {
   const toneClass = {
-    brand: "bg-brand-50 text-brand-600",
-    amber: "bg-amber-50 text-amber-600",
-    violet: "bg-violet-50 text-violet-600",
-    sky: "bg-sky-50 text-sky-600",
-    rose: "bg-rose-50 text-rose-600",
-    emerald: "bg-emerald-50 text-emerald-600",
+    brand: "bg-brand-50 dark:bg-brand-400/10 text-brand-600 dark:text-brand-400",
+    amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    violet: "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    sky: "bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    rose: "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    emerald: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   }[tone];
   return (
-    <div className={cn("rounded-2xl border border-line bg-white p-5 shadow-card", className)}>
+    <div className={cn("rounded-2xl border border-line bg-surface p-5 shadow-card", className)}>
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-slate-500">{label}</p>
         {icon && <span className={cn("grid size-9 place-items-center rounded-xl [&_svg]:size-[18px]", toneClass)}>{icon}</span>}
       </div>
-      <p className="mt-2 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
+      <p className="mt-2 text-2xl font-extrabold tracking-tight text-fg">{value}</p>
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
   );
 }
 
 export function Avatar({ name, size = "md", className }: { name: string; size?: "sm" | "md" | "lg" | "xl"; className?: string }) {
-  const palette = ["bg-brand-100 text-brand-800", "bg-violet-100 text-violet-800", "bg-amber-100 text-amber-800", "bg-sky-100 text-sky-800", "bg-rose-100 text-rose-800", "bg-emerald-100 text-emerald-800"];
+  const palette = ["bg-brand-100 dark:bg-brand-400/15 text-brand-800 dark:text-brand-200", "bg-violet-100 dark:bg-violet-500/15 text-violet-800 dark:text-violet-200", "bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200", "bg-sky-100 dark:bg-sky-500/15 text-sky-800 dark:text-sky-200", "bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-200", "bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   const letters = name
@@ -259,7 +259,7 @@ export function PageHeader({
     <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0">
         {eyebrow && <div className="mb-2">{eyebrow}</div>}
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-[28px]">{title}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-fg sm:text-[28px]">{title}</h1>
         {description && <p className="mt-1.5 max-w-2xl text-sm text-slate-500 sm:text-base">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
@@ -272,7 +272,7 @@ export function PageSkeleton({ variant = "page" }: { variant?: "page" | "full" |
   if (variant === "full") {
     return (
       <div className="grid min-h-dvh place-items-center bg-slate-100" role="status" aria-label="Loading">
-        <div className="size-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        <div className="size-10 animate-spin rounded-full border-4 border-brand-200 dark:border-brand-400/30 border-t-brand-600" />
       </div>
     );
   }

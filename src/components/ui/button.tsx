@@ -11,12 +11,12 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-brand-600 text-white shadow-sm hover:bg-brand-700",
-  secondary: "border border-line-strong bg-white text-ink shadow-xs hover:border-slate-300 hover:bg-slate-50",
-  outline: "border border-brand-600 bg-white text-brand-700 hover:bg-brand-50",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-ink",
+  secondary: "border border-line-strong bg-surface text-fg shadow-xs hover:border-slate-300 hover:bg-slate-50",
+  outline: "border border-brand-600 bg-surface text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-400/10",
+  ghost: "text-slate-600 hover:bg-slate-100 hover:text-fg",
   danger: "bg-red-600 text-white shadow-sm hover:bg-red-700",
-  subtle: "bg-brand-50 text-brand-700 hover:bg-brand-100",
-  white: "bg-white text-brand-800 shadow-sm hover:bg-brand-50",
+  subtle: "bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-400/15",
+  white: "bg-surface text-brand-800 dark:text-brand-200 shadow-sm hover:bg-brand-50 dark:hover:bg-brand-400/10",
   dark: "bg-ink text-white hover:bg-slate-800",
 };
 
@@ -35,7 +35,8 @@ const radius: Record<ButtonSize, string> = { xs: "rounded-md", sm: "rounded-lg",
  */
 function groupOf(token: string): string | null {
   const i = token.lastIndexOf(":");
-  const mod = i >= 0 ? token.slice(0, i + 1) : "";
+  // `dark:` belongs to the same group, so an override replaces both theme variants
+  const mod = (i >= 0 ? token.slice(0, i + 1) : "").replace(/^dark:/, "");
   const u = token.slice(i + 1);
   if (/^(hidden|block|inline|inline-block|inline-flex|flex|grid|inline-grid|contents)$/.test(u)) return `${mod}display`;
   if (u.startsWith("bg-")) return `${mod}bg`;

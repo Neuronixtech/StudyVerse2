@@ -137,7 +137,7 @@ export function SimPlayer({
         <button
           type="button"
           onClick={toggle}
-          className="absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-700 shadow-2xl transition-transform hover:scale-105 sm:size-20"
+          className="absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-surface text-brand-700 dark:text-brand-300 shadow-2xl transition-transform hover:scale-105 sm:size-20"
           aria-label={position > 0 ? "Resume playback" : "Play lesson"}
         >
           <Play className="ml-1 size-8 fill-current sm:size-9" />
@@ -147,8 +147,8 @@ export function SimPlayer({
       {/* Resume prompt */}
       {showResume && (
         <div className="absolute inset-0 grid place-items-center bg-ink/70 backdrop-blur-sm">
-          <div className="mx-4 max-w-sm rounded-2xl bg-white p-5 text-center text-slate-600 shadow-2xl">
-            <p className="text-base font-bold text-ink">Pick up where you left off?</p>
+          <div className="mx-4 max-w-sm rounded-2xl bg-surface p-5 text-center text-slate-600 shadow-2xl">
+            <p className="text-base font-bold text-fg">Pick up where you left off?</p>
             <p className="mt-1 text-sm">You stopped at {formatClock(initialPosition)} of {formatClock(duration)}.</p>
             <div className="mt-4 flex justify-center gap-2">
               <button
@@ -168,7 +168,7 @@ export function SimPlayer({
                   setPosition(0);
                   setPlaying(true);
                 }}
-                className="rounded-lg border border-line-strong px-4 py-2 text-sm font-semibold text-ink hover:bg-slate-50"
+                className="rounded-lg border border-line-strong px-4 py-2 text-sm font-semibold text-fg hover:bg-slate-50"
               >
                 Start over
               </button>
@@ -198,12 +198,12 @@ export function SimPlayer({
         </div>
       )}
 
-      {/* Controls */}
-      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-3 pt-10 pb-2.5 sm:px-4">
+      {/* Controls — the gradient lets taps through (on small screens it overlaps the big play button); only the controls catch them */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-3 pt-10 pb-2.5 sm:px-4">
         <label className="sr-only" htmlFor={`seek-${lesson.id}`}>
           Seek
         </label>
-        <div className="relative h-4">
+        <div className="pointer-events-auto relative h-4">
           <div className="absolute top-1/2 h-1.5 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
             <div className="h-full bg-brand-400" style={{ width: `${pct}%` }} />
           </div>
@@ -223,7 +223,7 @@ export function SimPlayer({
           />
           <span className="pointer-events-none absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" style={{ left: `${pct}%` }} />
         </div>
-        <div className="mt-1.5 flex items-center gap-1 sm:gap-2">
+        <div className="pointer-events-auto mt-1.5 flex items-center gap-1 sm:gap-2">
           <CtrlButton label={playing ? "Pause" : "Play"} onClick={toggle}>
             {playing ? <Pause className="fill-current" /> : <Play className="fill-current" />}
           </CtrlButton>

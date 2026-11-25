@@ -69,7 +69,7 @@ export function AdminDashboard() {
             description="Oldest first"
             action={
               canSubs ? (
-                <Link href="/admin/requests" className="text-sm font-semibold text-brand-700 hover:underline">
+                <Link href="/admin/requests" className="text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                   Open queue
                 </Link>
               ) : undefined
@@ -90,9 +90,9 @@ export function AdminDashboard() {
                   <li key={r.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                     <Avatar name={l?.name ?? "?"} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-ink">{l?.name}</p>
+                      <p className="truncate text-sm font-bold text-fg">{l?.name}</p>
                       <p className="text-xs text-slate-500">
-                        {r.planDays} days · {formatINR(r.amount)} {plan && plan.price !== r.amount && <span className="font-semibold text-red-600">(price {formatINR(plan.price)})</span>} · {r.method === "upi" ? "UPI" : "Bank"} · {relativeTime(r.submittedAt, now)}
+                        {r.planDays} days · {formatINR(r.amount)} {plan && plan.price !== r.amount && <span className="font-semibold text-red-600 dark:text-red-400">(price {formatINR(plan.price)})</span>} · {r.method === "upi" ? "UPI" : "Bank"} · {relativeTime(r.submittedAt, now)}
                       </p>
                     </div>
                     <Button size="sm" onClick={() => setReviewId(r.id)}>
@@ -148,7 +148,7 @@ export function AdminDashboard() {
                 <li key={learner.id} className="flex items-center gap-3 px-5 py-3">
                   <Avatar name={learner.name} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-ink">{learner.name}</p>
+                    <p className="truncate text-sm font-semibold text-fg">{learner.name}</p>
                     <p className="text-xs text-slate-500">Expires {formatDate(sub.expiresAt!)}</p>
                   </div>
                   <Badge tone="amber">{sub.daysLeft}d</Badge>
@@ -163,10 +163,10 @@ export function AdminDashboard() {
           <ul className="divide-y divide-line text-sm">
             <li className="flex items-center justify-between gap-3 px-5 py-3">
               <span className="flex items-center gap-2">
-                <Gift className="size-4 text-brand-600" /> Free demo test
+                <Gift className="size-4 text-brand-600 dark:text-brand-400" /> Free demo test
               </span>
               {demo ? (
-                <Link href={`/admin/tests/${demo.id}`} className="max-w-40 truncate font-semibold text-brand-700 hover:underline">
+                <Link href={`/admin/tests/${demo.id}`} className="max-w-40 truncate font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                   {demo.title}
                 </Link>
               ) : (
@@ -206,7 +206,7 @@ export function AdminDashboard() {
           <ul className="max-h-80 divide-y divide-line overflow-y-auto">
             {[...state.audit].sort((a, b) => b.at - a.at).slice(0, 8).map((a) => (
               <li key={a.id} className="px-5 py-3">
-                <p className="text-sm text-ink">{a.text}</p>
+                <p className="text-sm text-fg">{a.text}</p>
                 <p className="text-xs text-slate-500">
                   {a.actor} · {relativeTime(a.at, now)}
                 </p>
@@ -226,10 +226,10 @@ export function AdminDashboard() {
           <Link
             key={q.href}
             href={q.href}
-            className={cn("flex items-center gap-3 rounded-2xl border border-line bg-white p-4 shadow-card transition-colors hover:border-brand-300", !q.perm && "opacity-60")}
+            className={cn("flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card transition-colors hover:border-brand-300", !q.perm && "opacity-60")}
           >
-            <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-700 [&_svg]:size-5">{q.icon}</span>
-            <span className="flex-1 text-sm font-bold text-ink">{q.label}</span>
+            <span className="grid size-10 place-items-center rounded-xl bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300 [&_svg]:size-5">{q.icon}</span>
+            <span className="flex-1 text-sm font-bold text-fg">{q.label}</span>
             {q.perm ? <ArrowRight className="size-4 text-slate-400" /> : <Lock className="size-4 text-slate-400" />}
           </Link>
         ))}

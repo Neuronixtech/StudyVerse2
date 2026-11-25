@@ -1,5 +1,12 @@
 import { scoreSnapshot, snapshotOf } from "../exam";
 import type {
+  Address,
+  AppNotification,
+  Book,
+  BookOrder,
+  BookstoreSettings,
+  CartItem,
+  StockMovement,
   Admin,
   Attempt,
   AuditEntry,
@@ -17,10 +24,11 @@ import type {
   Test,
 } from "../types";
 import { DAY, HOUR, MINUTE } from "../utils";
+import { seedBookstore } from "./bookstore";
 import { seedCourses } from "./courses";
 import { seedTests } from "./tests";
 
-export const STATE_VERSION = 3;
+export const STATE_VERSION = 4;
 
 /** Fixed time used for the server prerender, so the static HTML is deterministic. */
 export const SERVER_ANCHOR = Date.UTC(2026, 10, 13, 4, 30);
@@ -50,6 +58,15 @@ export interface AppState {
   session: { learnerId: string | null; adminId: string | null };
   prefs: Prefs;
   audit: AuditEntry[];
+  /* Bookstore */
+  books: Book[];
+  bookOrders: BookOrder[];
+  addresses: Address[];
+  stockMovements: StockMovement[];
+  /** Keyed by learner id, or "guest" for visitors (preserved through login) */
+  carts: Record<string, CartItem[]>;
+  notifications: AppNotification[];
+  bookstore: BookstoreSettings;
 }
 
 /** Demo personas surfaced in the prototype toolbar and login screens */
@@ -118,9 +135,9 @@ export function createSeed(anchor: number): AppState {
   ];
 
   const admins: Admin[] = [
-    { id: "a-vikram", name: "Vikram Rao", email: "vikram@studyverse.example", role: "owner", permissions: ["courses", "tests", "learners", "subscriptions", "pricing"], status: "active", invitedAt: ago(400), lastActiveAt: ago(0.1) },
-    { id: "a-priya", name: "Priya Nair", email: "priya@studyverse.example", role: "staff", permissions: ["courses", "tests", "subscriptions"], status: "active", invitedAt: ago(200), lastActiveAt: ago(0.3) },
-    { id: "a-arjun", name: "Arjun Das", email: "arjun@studyverse.example", role: "staff", permissions: ["learners", "subscriptions"], status: "invited", invitedAt: ago(2) },
+    { id: "a-vikram", name: "Vikram Rao", email: "vikram@studyverse.example", role: "owner", permissions: ["courses", "tests", "learners", "subscriptions", "pricing"], status: "active", invitedAt: ago(400), lastActiveAt: ago(0.1), bookPermissions: [] },
+    { id: "a-priya", name: "Priya Nair", email: "priya@studyverse.example", role: "staff", permissions: ["courses", "tests", "subscriptions"], status: "active", invitedAt: ago(200), lastActiveAt: ago(0.3), bookPermissions: ["books.edit", "books.photos", "inventory.adjust", "orders.process", "dispatch.manage", "reports.view"] },
+    { id: "a-arjun", name: "Arjun Das", email: "arjun@studyverse.example", role: "staff", permissions: ["learners", "subscriptions"], status: "invited", invitedAt: ago(2), bookPermissions: ["payments.verify", "cancellations.decide", "returns.review", "refunds.record", "reports.view"] },
   ];
 
   const approved = (
@@ -292,6 +309,7 @@ export function createSeed(anchor: number): AppState {
     platform: { supportEmail: "support@studyverse.example", supportPhone: "+91 20 4000 1234", allowSignups: true },
     session: { learnerId: null, adminId: null },
     prefs: { simulateLatency: false, simulateError: false },
+    ...seedBookstore(anchor),
     audit,
   };
 }

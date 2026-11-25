@@ -35,7 +35,7 @@ export default function HomePage() {
           id="popular-heading"
           title={
             <>
-              Explore our most <span className="text-brand-600">popular courses</span>
+              Explore our most <span className="text-brand-600 dark:text-brand-400">popular courses</span>
             </>
           }
           description="Concept-first recorded courses built around the JEE and MHT-CET syllabus. Every course has a free preview lesson."
@@ -61,7 +61,7 @@ export default function HomePage() {
             id="tests-heading"
             title={
               <>
-                Practise in a real <span className="whitespace-nowrap text-brand-600">NTA-style</span> exam interface
+                Practise in a real <span className="whitespace-nowrap text-brand-600 dark:text-brand-400">NTA-style</span> exam interface
               </>
             }
             description="Full mocks, chapter tests and sectional-timed papers with instant scores and detailed solutions."
@@ -86,7 +86,7 @@ export default function HomePage() {
           id="pricing-heading"
           title={
             <>
-              One subscription. <span className="text-brand-600">Everything unlocked.</span>
+              One subscription. <span className="text-brand-600 dark:text-brand-400">Everything unlocked.</span>
             </>
           }
           description="No per-course pricing. Pick a duration, pay via UPI or bank transfer, and get access once our team verifies your payment."
@@ -130,14 +130,14 @@ function Hero() {
   return (
     <section className="relative overflow-hidden">
       <div className="bg-dots absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
-      <div className="absolute inset-x-0 top-0 -z-20 h-full bg-linear-to-b from-brand-50/80 via-white to-white" />
+      <div className="absolute inset-x-0 top-0 -z-20 h-full bg-linear-to-b from-brand-50/80 via-surface to-surface dark:from-brand-400/10" />
       <div className="container-page grid grid-cols-1 items-center gap-12 pt-12 pb-28 lg:grid-cols-[1.05fr_1fr] lg:pt-16 lg:pb-36">
         <div className="animate-slide-up">
-          <span className="inline-flex flex-wrap items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-semibold text-brand-700 shadow-xs">
+          <span className="inline-flex flex-wrap items-center gap-2 rounded-full border border-brand-200 dark:border-brand-400/30 bg-surface px-3 py-1 text-xs font-semibold text-brand-700 dark:text-brand-300 shadow-xs">
             <Sparkles className="size-3.5" /> JEE Main · JEE Advanced · MHT-CET
           </span>
           <h1 className="mt-5 text-4xl leading-[1.1] font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[56px]">
-            Crack your engineering entrance with <span className="text-brand-600">structured preparation</span>
+            Crack your engineering entrance with <span className="text-brand-600 dark:text-brand-400">structured preparation</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-500 sm:text-lg">
             Recorded courses by experienced faculty, NTA-style practice tests and one all-access subscription — everything an aspirant needs, in one place.
@@ -158,13 +158,20 @@ function Hero() {
               { icon: <LayoutGrid />, value: "40+", label: "Practice tests" },
               { icon: <Star />, value: "4.8/5", label: "Avg. rating" },
             ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2.5">
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700 [&_svg]:size-4">{s.icon}</span>
-                <div>
-                  <dt className="sr-only">{s.label}</dt>
-                  <dd className="text-base font-extrabold text-ink">{s.value}</dd>
-                  <dd className="text-xs text-slate-500">{s.label}</dd>
-                </div>
+              <div key={s.label}>
+                <dt className="sr-only">{s.label}</dt>
+                <dd className="flex items-center gap-2.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-100 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300 [&_svg]:size-4" aria-hidden>
+                    {s.icon}
+                  </span>
+                  <span>
+                    <span className="block text-base font-extrabold text-fg">{s.value}</span>
+                    {/* Visible caption; screen readers already get it from the <dt> */}
+                    <span className="block text-xs text-slate-500" aria-hidden>
+                      {s.label}
+                    </span>
+                  </span>
+                </dd>
               </div>
             ))}
           </dl>
@@ -182,17 +189,17 @@ function HeroVisual() {
     r: "bg-q-notanswered text-white",
     m: "bg-q-review text-white",
     mc: "bg-q-review text-white ring-2 ring-emerald-300",
-    v: "bg-white text-ink ring-2 ring-brand-500",
+    v: "bg-surface text-fg ring-2 ring-brand-500",
     n: "bg-slate-100 text-slate-500",
   };
   return (
     <div className="relative mx-auto w-full max-w-lg lg:max-w-none" aria-hidden>
-      <div className="absolute top-1/2 left-1/2 aspect-square w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-br from-brand-200 via-brand-100 to-white" />
-      <div className="absolute top-[8%] right-[6%] size-16 rounded-full border-[10px] border-brand-200/70" />
+      <div className="absolute top-1/2 left-1/2 aspect-square w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-br from-brand-200 via-brand-100 to-surface dark:from-brand-500/30 dark:via-brand-500/10" />
+      <div className="absolute top-[8%] right-[6%] size-16 rounded-full border-[10px] border-brand-200/70 dark:border-brand-500/30 dark:border-brand-400/30" />
       <div className="absolute bottom-[10%] left-[4%] size-10 rounded-full bg-amber-300/70" />
 
       {/* Exam window */}
-      <div className="relative mx-auto mt-16 w-[86%] overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
+      <div className="relative mx-auto mt-16 w-[86%] overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
         <div className="flex items-center justify-between bg-brand-700 px-4 py-2.5 text-white">
           <span className="text-xs font-semibold">JEE Main Mock · Physics</span>
           <span className="inline-flex items-center gap-1.5 rounded-md bg-white/15 px-2 py-0.5 font-mono text-xs font-bold">
@@ -201,15 +208,15 @@ function HeroVisual() {
         </div>
         <div className="grid grid-cols-[1fr_auto] gap-4 p-4">
           <div>
-            <p className="text-[11px] font-bold text-brand-700">Question 7 · Single correct</p>
-            <p className="mt-1.5 text-xs leading-relaxed font-medium text-ink">A ball is projected at 30° with 20 m/s. The maximum height reached is:</p>
+            <p className="text-[11px] font-bold text-brand-700 dark:text-brand-300">Question 7 · Single correct</p>
+            <p className="mt-1.5 text-xs leading-relaxed font-medium text-fg">A ball is projected at 30° with 20 m/s. The maximum height reached is:</p>
             <div className="mt-3 space-y-1.5">
               {["5 m", "10 m", "15 m", "20 m"].map((o, i) => (
                 <div
                   key={o}
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium",
-                    i === 0 ? "border-brand-500 bg-brand-50 text-brand-800" : "border-line text-slate-600",
+                    i === 0 ? "border-brand-500 bg-brand-50 dark:bg-brand-400/10 text-brand-800 dark:text-brand-200" : "border-line text-slate-600",
                   )}
                 >
                   <span className={cn("grid size-3.5 place-items-center rounded-full border", i === 0 ? "border-brand-600" : "border-slate-300")}>
@@ -238,30 +245,30 @@ function HeroVisual() {
       </div>
 
       {/* Floating badges, as in the reference design */}
-      <div className="absolute top-0 left-0 flex animate-float items-center gap-2.5 rounded-2xl bg-white px-3.5 py-2.5 shadow-lift">
-        <span className="grid size-9 place-items-center rounded-xl bg-brand-100 text-brand-700">
+      <div className="absolute top-0 left-0 flex animate-float items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-2.5 shadow-lift">
+        <span className="grid size-9 place-items-center rounded-xl bg-brand-100 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300">
           <Users className="size-4" />
         </span>
         <div>
-          <p className="text-sm font-extrabold text-ink">12,000+</p>
+          <p className="text-sm font-extrabold text-fg">12,000+</p>
           <p className="text-[11px] text-slate-500">Mock tests taken</p>
         </div>
       </div>
-      <div className="absolute right-0 bottom-[16%] flex animate-float items-center gap-2 rounded-2xl bg-white px-3.5 py-2.5 shadow-lift [animation-delay:1.5s] sm:-right-2">
-        <span className="grid size-9 place-items-center rounded-xl bg-amber-100 text-amber-600">
+      <div className="absolute right-0 bottom-[16%] flex animate-float items-center gap-2 rounded-2xl bg-surface px-3.5 py-2.5 shadow-lift [animation-delay:1.5s] sm:-right-2">
+        <span className="grid size-9 place-items-center rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400">
           <Star className="size-4 fill-amber-400" />
         </span>
         <div>
-          <p className="text-sm font-extrabold text-ink">4.8 / 5</p>
+          <p className="text-sm font-extrabold text-fg">4.8 / 5</p>
           <p className="text-[11px] text-slate-500">Course rating</p>
         </div>
       </div>
-      <div className="absolute -bottom-6 left-[8%] flex animate-float items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-lift [animation-delay:3s]">
-        <span className="grid size-10 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+      <div className="absolute -bottom-6 left-[8%] flex animate-float items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-lift [animation-delay:3s]">
+        <span className="grid size-10 place-items-center rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
           <CirclePlay className="size-5" />
         </span>
         <div className="w-36">
-          <p className="text-xs font-bold text-ink">Projectile motion</p>
+          <p className="text-xs font-bold text-fg">Projectile motion</p>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
             <div className="h-full w-[68%] rounded-full bg-brand-500" />
           </div>
@@ -286,7 +293,7 @@ function FeatureBand() {
       <div className="grid grid-cols-1 gap-px overflow-hidden rounded-3xl bg-linear-to-r from-brand-600 via-brand-600 to-brand-700 p-1 shadow-lift sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f, i) => (
           <div key={f.title} className={cn("flex items-start gap-4 p-6 text-white", i > 0 && "lg:border-l lg:border-white/15")}>
-            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-brand-700 shadow-sm [&_svg]:size-5">{f.icon}</span>
+            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface text-brand-700 dark:text-brand-300 shadow-sm [&_svg]:size-5">{f.icon}</span>
             <div>
               <h3 className="text-base font-bold text-white">{f.title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-brand-50/85">{f.text}</p>
@@ -317,10 +324,10 @@ function ExamBand() {
         </div>
         <ul className="flex flex-wrap justify-center gap-3">
           {EXAMS.map((e) => (
-            <li key={e.id} className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
-              <GraduationCap className="size-4 text-brand-600" />
-              <span className="text-sm font-bold text-ink">{e.name}</span>
-              {e.comingSoon && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Soon</span>}
+            <li key={e.id} className="flex items-center gap-2 rounded-xl bg-surface px-4 py-2.5 shadow-sm">
+              <GraduationCap className="size-4 text-brand-600 dark:text-brand-400" />
+              <span className="text-sm font-bold text-fg">{e.name}</span>
+              {e.comingSoon && <span className="rounded bg-amber-100 dark:bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200">Soon</span>}
             </li>
           ))}
         </ul>
@@ -341,11 +348,11 @@ function DemoSection() {
   ];
   return (
     <section className="container-page py-20 lg:py-24" aria-labelledby="demo-heading">
-      <div className="grid grid-cols-1 items-center gap-12 overflow-hidden rounded-3xl border border-line bg-white p-6 shadow-card sm:p-10 lg:grid-cols-2 lg:p-14">
+      <div className="grid grid-cols-1 items-center gap-12 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-card sm:p-10 lg:grid-cols-2 lg:p-14">
         <div className="relative order-2 lg:order-1">
-          <div className="absolute -inset-6 -z-10 rounded-3xl bg-brand-50" />
-          <div className="rounded-2xl bg-white p-5 shadow-lift ring-1 ring-line">
-            <p className="text-sm font-bold text-ink">Question palette legend</p>
+          <div className="absolute -inset-6 -z-10 rounded-3xl bg-brand-50 dark:bg-brand-400/10" />
+          <div className="rounded-2xl bg-surface p-5 shadow-lift ring-1 ring-line">
+            <p className="text-sm font-bold text-fg">Question palette legend</p>
             <ul className="mt-4 space-y-3">
               {legend.map((l, i) => (
                 <li key={l.label} className="flex items-center gap-3 text-sm">
@@ -361,7 +368,7 @@ function DemoSection() {
                 { k: "Numerical", v: "NUM" },
               ].map((t) => (
                 <div key={t.k} className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-sm font-extrabold text-brand-700">{t.v}</p>
+                  <p className="text-sm font-extrabold text-brand-700 dark:text-brand-300">{t.v}</p>
                   <p className="text-[11px] text-slate-500">{t.k}</p>
                 </div>
               ))}
@@ -407,7 +414,7 @@ function WhySection() {
     <section className="container-page pb-20 lg:pb-24" aria-labelledby="why-heading">
       <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
         <div>
-          <p className="text-xs font-bold tracking-widest text-brand-600 uppercase">Why choose us</p>
+          <p className="text-xs font-bold tracking-widest text-brand-600 dark:text-brand-400 uppercase">Why choose us</p>
           <h2 id="why-heading" className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
             Empowering aspirants across India
           </h2>
@@ -424,7 +431,7 @@ function WhySection() {
               "Works great on mobile data",
             ].map((f) => (
               <li key={f} className="flex items-start gap-2.5 text-sm">
-                <BadgeCheck className="mt-0.5 size-4 shrink-0 text-brand-600" /> {f}
+                <BadgeCheck className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" /> {f}
               </li>
             ))}
           </ul>
@@ -441,7 +448,7 @@ function WhySection() {
               </div>
               <p className="mt-2 text-xl font-bold text-white">Projectile motion</p>
               <div className="mt-6 grid aspect-video place-items-center rounded-2xl bg-white/5 ring-1 ring-white/10">
-                <span className="grid size-16 place-items-center rounded-full bg-white text-brand-700 shadow-xl">
+                <span className="grid size-16 place-items-center rounded-full bg-surface text-brand-700 dark:text-brand-300 shadow-xl">
                   <CirclePlay className="size-8" />
                 </span>
               </div>
@@ -454,12 +461,12 @@ function WhySection() {
               </div>
             </div>
           </div>
-          <div className="absolute -bottom-14 left-6 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-lift sm:left-10">
+          <div className="absolute -bottom-14 left-6 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-lift sm:left-10">
             <span className="grid size-10 place-items-center rounded-full bg-brand-600 text-white">
               <CirclePlay className="size-5" />
             </span>
             <div>
-              <p className="text-sm font-bold text-ink">Watch how it works</p>
+              <p className="text-sm font-bold text-fg">Watch how it works</p>
               <p className="text-xs text-slate-500">2 min overview</p>
             </div>
           </div>
@@ -480,7 +487,7 @@ function Testimonials() {
   return (
     <section className="container-page py-20 lg:py-24" aria-labelledby="testimonials-heading">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-xs font-bold tracking-widest text-brand-600 uppercase">Student reviews</p>
+        <p className="text-xs font-bold tracking-widest text-brand-600 dark:text-brand-400 uppercase">Student reviews</p>
         <h2 id="testimonials-heading" className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
           What our students say
         </h2>
@@ -491,7 +498,7 @@ function Testimonials() {
             key={t.name}
             className={cn(
               "flex flex-col rounded-2xl border p-6 shadow-card",
-              i === 1 ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-white",
+              i === 1 ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-surface",
             )}
           >
             <Quote className={cn("size-8", i === 1 ? "text-brand-200" : "text-brand-200")} />
@@ -502,12 +509,12 @@ function Testimonials() {
             </div>
             <blockquote className={cn("mt-3 flex-1 text-sm leading-relaxed", i === 1 ? "text-brand-50" : "text-slate-600")}>“{t.quote}”</blockquote>
             <figcaption className="mt-5 flex items-center gap-3">
-              <span className={cn("grid size-10 place-items-center rounded-full text-sm font-bold", i === 1 ? "bg-white text-brand-700" : "bg-brand-100 text-brand-800")}>
+              <span className={cn("grid size-10 place-items-center rounded-full text-sm font-bold", i === 1 ? "bg-surface text-brand-700 dark:text-brand-300" : "bg-brand-100 dark:bg-brand-400/15 text-brand-800 dark:text-brand-200")}>
                 {t.name[0]}
               </span>
               <span>
-                <span className={cn("block text-sm font-bold", i === 1 ? "text-white" : "text-ink")}>{t.name}</span>
-                <span className={cn("block text-xs", i === 1 ? "text-brand-100" : "text-slate-500")}>{t.meta}</span>
+                <span className={cn("block text-sm font-bold", i === 1 ? "text-white" : "text-fg")}>{t.name}</span>
+                <span className={cn("block text-xs", i === 1 ? "text-brand-50" : "text-slate-500")}>{t.meta}</span>
               </span>
             </figcaption>
           </figure>
@@ -565,8 +572,8 @@ function Faq() {
         </div>
         <div className="space-y-3">
           {faqs.map((f) => (
-            <details key={f.q} className="group rounded-2xl border border-line bg-white px-5 shadow-xs open:shadow-card">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-bold text-ink [&::-webkit-details-marker]:hidden">
+            <details key={f.q} className="group rounded-2xl border border-line bg-surface px-5 shadow-xs open:shadow-card">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-bold text-fg [&::-webkit-details-marker]:hidden">
                 {f.q}
                 <ChevronDown className="size-5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
               </summary>
@@ -585,7 +592,7 @@ function CtaStrip() {
       <div className="flex flex-col items-start gap-6 rounded-3xl bg-ink p-8 sm:p-10 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-extrabold text-white sm:text-3xl">Ready to start preparing?</h2>
-          <p className="mt-2 text-slate-300">Create a free account, watch preview lessons and take the demo test today.</p>
+          <p className="mt-2 text-white/70">Create a free account, watch preview lessons and take the demo test today.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <ButtonLink href="/signup" variant="white" size="lg" pill>

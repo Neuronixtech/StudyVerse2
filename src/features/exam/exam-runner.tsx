@@ -8,7 +8,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Avatar, EmptyState } from "@/components/ui/feedback";
 import { ConfirmDialog, Drawer, Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
-import { countStates, hasResponse, marksFor, QUESTION_TYPE_LABEL, stateOf, validateNumerical } from "@/lib/exam";
+import { countStates, hasResponse, marksFor, QUESTION_TYPE_LABEL, STATE_LABEL, stateOf, validateNumerical } from "@/lib/exam";
 import { useSession } from "@/lib/hooks";
 import { liveKey, submitLiveExam, updateLiveExam, useNow } from "@/lib/store";
 import type { LiveExam, Question, QuestionResponse, TestSection } from "@/lib/types";
@@ -132,7 +132,7 @@ export function ExamRunner({ testId }: { testId: string }) {
     return (
       <div className="grid flex-1 place-items-center p-8 text-center">
         <div>
-          <LoaderCircle className="mx-auto size-8 animate-spin text-brand-600" />
+          <LoaderCircle className="mx-auto size-8 animate-spin text-brand-600 dark:text-brand-400" />
           <p className="mt-3 text-sm font-semibold text-slate-600">Loading your exam…</p>
         </div>
       </div>
@@ -145,9 +145,9 @@ export function ExamRunner({ testId }: { testId: string }) {
       return (
         <div className="grid flex-1 place-items-center p-8 text-center">
           <div>
-            <LoaderCircle className="mx-auto size-8 animate-spin text-brand-600" />
+            <LoaderCircle className="mx-auto size-8 animate-spin text-brand-600 dark:text-brand-400" />
             <p className="mt-3 text-sm font-semibold text-slate-600">Submitting your test…</p>
-            <Link href={`/results/${justSubmitted.id}`} className="mt-2 inline-block text-sm font-semibold text-brand-700 hover:underline">
+            <Link href={`/results/${justSubmitted.id}`} className="mt-2 inline-block text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
               View result
             </Link>
           </div>
@@ -265,7 +265,7 @@ export function ExamRunner({ testId }: { testId: string }) {
       <div className="flex items-center gap-3 border-b border-line p-4">
         <Avatar name={learner?.name ?? "Guest candidate"} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-ink">{learner?.name ?? "Guest candidate"}</p>
+          <p className="truncate text-sm font-bold text-fg">{learner?.name ?? "Guest candidate"}</p>
           <p className="text-xs text-slate-500">{learner ? "Signed in" : "Demo attempt as guest"}</p>
         </div>
       </div>
@@ -283,7 +283,7 @@ export function ExamRunner({ testId }: { testId: string }) {
                 key={q.id}
                 type="button"
                 onClick={() => goTo(section.id, q.id)}
-                aria-label={`Question ${i + 1}, ${st.replace("-", " ")}`}
+                aria-label={`Question ${i + 1}, ${STATE_LABEL[st]}`}
                 aria-current={q.id === question.id ? "true" : undefined}
                 className="grid place-items-center rounded-md focus-visible:outline-offset-4"
               >
@@ -332,7 +332,7 @@ export function ExamRunner({ testId }: { testId: string }) {
 
       {/* Section tabs */}
       {snapshot.sections.length > 1 && (
-        <div className="shrink-0 border-b border-line bg-white">
+        <div className="shrink-0 border-b border-line bg-surface">
           <div role="tablist" aria-label="Sections" className="relative scrollbar-thin flex gap-1 overflow-x-auto px-2 sm:px-4">
             {snapshot.sections.map((s) => {
               const locked = live.lockedSectionIds.includes(s.id);
@@ -352,12 +352,12 @@ export function ExamRunner({ testId }: { testId: string }) {
                   }}
                   className={cn(
                     "-mb-px flex shrink-0 items-center gap-2 border-b-[3px] px-3 py-3 text-sm font-bold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                    active ? "border-brand-600 text-brand-700" : "border-transparent text-slate-500 hover:text-ink",
+                    active ? "border-brand-600 text-brand-700 dark:text-brand-300" : "border-transparent text-slate-500 hover:text-fg",
                   )}
                 >
                   {locked && <Lock className="size-3.5" />}
                   {s.name}
-                  <span className={cn("rounded-full px-1.5 py-px text-[11px]", active ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-500")}>
+                  <span className={cn("rounded-full px-1.5 py-px text-[11px]", active ? "bg-brand-100 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300" : "bg-slate-100 text-slate-500")}>
                     {answered}/{s.questions.length}
                   </span>
                   {sectional && !active && (
@@ -376,16 +376,16 @@ export function ExamRunner({ testId }: { testId: string }) {
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
             <div className="mx-auto max-w-3xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
-                <h1 className="text-lg font-extrabold text-ink">Question {qIndex + 1}</h1>
+                <h1 className="text-lg font-extrabold text-fg">Question {qIndex + 1}</h1>
                 <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                   <span className="rounded-md bg-slate-200/70 px-2 py-1 text-slate-700">{QUESTION_TYPE_LABEL[question.type]}</span>
-                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-700 ring-1 ring-emerald-200">+{marks.correct}</span>
-                  <span className="rounded-md bg-red-50 px-2 py-1 text-red-700 ring-1 ring-red-200">{marks.incorrect}</span>
+                  <span className="rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-500/30">+{marks.correct}</span>
+                  <span className="rounded-md bg-red-50 dark:bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-500/30">{marks.incorrect}</span>
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-line bg-white p-4 shadow-xs sm:p-6">
-                <p className="text-base leading-relaxed font-medium text-ink sm:text-[17px]">{question.text}</p>
+              <div className="mt-5 rounded-2xl border border-line bg-surface p-4 shadow-xs sm:p-6">
+                <p className="text-base leading-relaxed font-medium text-fg sm:text-[17px]">{question.text}</p>
 
                 <div className="mt-6">
                   {question.type === "numerical" ? (
@@ -410,7 +410,7 @@ export function ExamRunner({ testId }: { testId: string }) {
                               key={o.id}
                               className={cn(
                                 "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3.5 transition-colors",
-                                checked ? "border-brand-500 bg-brand-50" : "border-line hover:border-brand-200 hover:bg-slate-50",
+                                checked ? "border-brand-500 bg-brand-50 dark:bg-brand-400/10" : "border-line hover:border-brand-200 dark:hover:border-brand-400/30 hover:bg-slate-50",
                               )}
                             >
                               <input
@@ -429,7 +429,7 @@ export function ExamRunner({ testId }: { testId: string }) {
                               <span className={cn("grid size-6 shrink-0 place-items-center rounded-md text-xs font-bold", checked ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600")}>
                                 {String.fromCharCode(65 + i)}
                               </span>
-                              <span className="pt-0.5 text-[15px] text-ink">{o.text}</span>
+                              <span className="pt-0.5 text-[15px] text-fg">{o.text}</span>
                             </label>
                           );
                         })}
@@ -439,7 +439,7 @@ export function ExamRunner({ testId }: { testId: string }) {
                 </div>
 
                 {draft?.qid === question.id && (
-                  <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 ring-1 ring-amber-200">
+                  <p className="mt-5 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-900 dark:text-amber-100 ring-1 ring-amber-200 dark:ring-amber-500/30">
                     Unsaved selection — click <strong>Save &amp; Next</strong> or <strong>Mark for Review &amp; Next</strong> to keep it.
                   </p>
                 )}
@@ -448,9 +448,9 @@ export function ExamRunner({ testId }: { testId: string }) {
           </div>
 
           {/* Action bar */}
-          <div className="shrink-0 border-t border-line bg-white p-2.5 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] sm:p-3 lg:shadow-none">
+          <div className="shrink-0 border-t border-line bg-surface p-2.5 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] sm:p-3 lg:shadow-none">
             <div className="mx-auto grid max-w-3xl grid-cols-2 gap-2 sm:flex sm:items-center">
-              <Button variant="outline" onClick={markAndNext} aria-label="Mark for Review & Next" className="border-violet-600 text-violet-700 hover:bg-violet-50">
+              <Button variant="outline" onClick={markAndNext} aria-label="Mark for Review & Next" className="border-violet-600 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10">
                 <Bookmark /> <span className="sm:hidden">Review &amp; Next</span>
                 <span className="hidden sm:inline">Mark for Review &amp; Next</span>
               </Button>
@@ -473,7 +473,7 @@ export function ExamRunner({ testId }: { testId: string }) {
         </main>
 
         {/* Desktop palette */}
-        <aside className="hidden w-80 shrink-0 border-l border-line bg-white lg:flex lg:flex-col" aria-label="Question palette">
+        <aside className="hidden w-80 shrink-0 border-l border-line bg-surface lg:flex lg:flex-col" aria-label="Question palette">
           <div className="min-h-0 flex-1">{palettePanel}</div>
         </aside>
       </div>
@@ -525,10 +525,10 @@ function SubmitDialog({
     { total: 0, answered: 0, "not-answered": 0, review: 0, "answered-review": 0, "not-visited": 0 },
   );
   const cols: { key: keyof typeof total; label: string; cls: string }[] = [
-    { key: "answered", label: "Answered", cls: "text-emerald-700" },
-    { key: "not-answered", label: "Not answered", cls: "text-red-600" },
-    { key: "review", label: "Marked", cls: "text-violet-700" },
-    { key: "answered-review", label: "Answered & marked", cls: "text-violet-700" },
+    { key: "answered", label: "Answered", cls: "text-emerald-700 dark:text-emerald-300" },
+    { key: "not-answered", label: "Not answered", cls: "text-red-600 dark:text-red-400" },
+    { key: "review", label: "Marked", cls: "text-violet-700 dark:text-violet-300" },
+    { key: "answered-review", label: "Answered & marked", cls: "text-violet-700 dark:text-violet-300" },
     { key: "not-visited", label: "Not visited", cls: "text-slate-500" },
   ];
 
@@ -566,7 +566,7 @@ function SubmitDialog({
           <tbody>
             {rows.map((r) => (
               <tr key={r.name} className="border-t border-line">
-                <td className="px-3 py-2.5 font-semibold text-ink">
+                <td className="px-3 py-2.5 font-semibold text-fg">
                   {r.name}
                   {live.lockedSectionIds.some((id) => live.snapshot.sections.find((s) => s.id === id)?.name === r.name) && (
                     <span className="ml-1.5 text-[11px] font-medium text-slate-400">(time over)</span>
@@ -582,7 +582,7 @@ function SubmitDialog({
             ))}
             {rows.length > 1 && (
               <tr className="border-t-2 border-line bg-slate-50 font-bold">
-                <td className="px-3 py-2.5 text-ink">Total</td>
+                <td className="px-3 py-2.5 text-fg">Total</td>
                 <td className="px-3 py-2.5 text-center">{total.total}</td>
                 {cols.map((c) => (
                   <td key={c.key} className={cn("px-3 py-2.5 text-center", c.cls)}>

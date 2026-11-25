@@ -56,7 +56,7 @@ export function StaffPage() {
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Avatar name={a.name} size="lg" />
                 <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
+                  <p className="flex flex-wrap items-center gap-2 font-bold text-fg">
                     {a.name}
                     {a.id === admin.id && <span className="text-xs font-medium text-slate-400">(you)</span>}
                     <Badge tone={a.role === "owner" ? "violet" : "sky"} size="xs">
@@ -80,7 +80,8 @@ export function StaffPage() {
               </div>
               <div className="flex flex-wrap gap-1.5 lg:w-[360px]">
                 {a.role === "owner" ? (
-                  <Badge tone="violet">Full access, including admins & platform settings</Badge>
+                  // A sentence, not a label: allow wrapping (Badge is nowrap by default) so it fits at 320 px
+                  <Badge tone="violet" className="whitespace-normal!">Full access, including admins & platform settings</Badge>
                 ) : a.permissions.length ? (
                   a.permissions.map((p) => (
                     <Badge key={p} tone="slate" size="xs">
@@ -92,7 +93,7 @@ export function StaffPage() {
                 )}
               </div>
               {a.role !== "owner" && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {a.status === "invited" && (
                     <Button variant="ghost" size="sm" onClick={() => toast({ title: "Invitation re-sent", description: a.email, simulated: true })}>
                       <Send /> Resend
@@ -101,7 +102,7 @@ export function StaffPage() {
                   <Button variant="secondary" size="sm" onClick={() => setEditing(a)}>
                     <UserCog /> Permissions
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setRemoving(a)} aria-label={`Remove ${a.name}`}>
+                  <Button variant="ghost" size="sm" className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300" onClick={() => setRemoving(a)} aria-label={`Remove ${a.name}`}>
                     <Trash2 />
                   </Button>
                 </div>
@@ -208,7 +209,7 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
             </Field>
           </div>
           <div>
-            <p className="mb-3 text-sm font-semibold text-ink">Permissions</p>
+            <p className="mb-3 text-sm font-semibold text-fg">Permissions</p>
             <PermissionChecklist value={perms} onChange={setPerms} />
           </div>
           <div className="flex justify-end gap-2 border-t border-line pt-4">
@@ -333,7 +334,7 @@ function PricingCard({ plans, editable, adminId }: { plans: Plan[]; editable: bo
         {draft.map((p, i) => (
           <div key={p.days} className="rounded-xl border border-line p-4">
             <div className="flex items-center justify-between">
-              <p className="font-bold text-ink">
+              <p className="font-bold text-fg">
                 {p.days} days <span className="font-medium text-slate-500">· {p.label}</span>
               </p>
             </div>
@@ -347,7 +348,7 @@ function PricingCard({ plans, editable, adminId }: { plans: Plan[]; editable: bo
       </div>
       {editable && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
-          {error ? <p className="text-sm font-semibold text-red-600">{error}</p> : <SimulatedNote>Existing subscriptions are not affected by price changes.</SimulatedNote>}
+          {error ? <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p> : <SimulatedNote>Existing subscriptions are not affected by price changes.</SimulatedNote>}
           <Button disabled={!dirty} onClick={save}>
             Save pricing
           </Button>
@@ -489,8 +490,8 @@ function AdminProfileForm({ admin }: { admin: Admin }) {
         <CardHeader title="Role & permissions" />
         <div className="space-y-3 p-5">
           <p className="flex items-center gap-2 text-sm">
-            <ShieldCheck className="size-4 text-brand-600" />
-            <strong className="text-ink">{admin.role === "owner" ? "Owner" : "Staff admin"}</strong>
+            <ShieldCheck className="size-4 text-brand-600 dark:text-brand-400" />
+            <strong className="text-fg">{admin.role === "owner" ? "Owner" : "Staff admin"}</strong>
           </p>
           <div className="flex flex-wrap gap-1.5">
             {(admin.role === "owner" ? ALL_PERMS : admin.permissions).map((p) => (

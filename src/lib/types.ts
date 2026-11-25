@@ -176,6 +176,8 @@ export interface Admin {
   status: "active" | "invited";
   invitedAt: number;
   lastActiveAt?: number;
+  /** Bookstore permissions (ignored for owners, who have all of them) */
+  bookPermissions: BookPermission[];
 }
 
 /* ------------------------ Subscriptions ------------------------ */
@@ -341,4 +343,241 @@ export interface AuditEntry {
   at: number;
   actor: string;
   text: string;
+  /** Optional entity reference (e.g. a book id) for per-record history */
+  ref?: string;
+}
+
+/* ---------------------------- Bookstore ---------------------------- */
+
+export type BookPermission =
+  | "books.edit"
+  | "books.photos"
+  | "inventory.adjust"
+  | "pricing.change"
+  | "payments.verify"
+  | "orders.process"
+  | "dispatch.manage"
+  | "cancellations.decide"
+  | "returns.review"
+  | "refunds.record"
+  | "reports.view";
+
+export type BookStatus = "draft" | "published" | "archived";
+export type BookPhotoKind = "cover" | "back" | "contents" | "sample" | "upload";
+
+export interface BookPhoto {
+  id: string;
+  kind: BookPhotoKind;
+  label: string;
+  /** Downscaled image for admin uploads (prototype: stored in the browser) */
+  dataUrl?: string;
+  fileName?: string;
+}
+
+/** Each edition/language combination is its own listing with its own price and stock */
+export interface Book {
+  id: string;
+  slug: string;
+  title: string;
+  author?: string;
+  publisher?: string;
+  isbn?: string;
+  examIds: ExamId[];
+  subjectIds: SubjectId[];
+  description: string;
+  language?: string;
+  edition?: string;
+  format: string;
+  pages?: number;
+  mrp: number;
+  price: number;
+  /** Units on hand (reservations are subtracted separately to get availability) */
+  stock: number;
+  status: BookStatus;
+  theme: ThumbTheme;
+  photos: BookPhoto[];
+  primaryPhotoId: string;
+  sold: number;
+  featured: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type StockMovementKind = "added" | "damaged" | "correction" | "sale" | "restock" | "replacement";
+
+export interface StockMovement {
+  id: string;
+  bookId: string;
+  at: number;
+  delta: number;
+  kind: StockMovementKind;
+  reason: string;
+  actor: string;
+  orderId?: string;
+}
+
+export interface CartItem {
+  bookId: string;
+  qty: number;
+  addedAt: number;
+}
+
+export interface Address {
+  id: string;
+  learnerId: string;
+  fullName: string;
+  mobile: string;
+  line1: string;
+  locality: string;
+  city: string;
+  state: string;
+  pin: string;
+  instructions?: string;
+  isDefault: boolean;
+}
+
+export type AddressSnapshot = Omit<Address, "id" | "learnerId" | "isDefault">;
+
+export type OrderStatus =
+  | "pending_payment"
+  | "payment_verification"
+  | "payment_rejected"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "returned"
+  | "refunded";
+
+/** Price snapshot taken when the order is placed */
+export interface OrderItem {
+  bookId: string;
+  title: string;
+  author?: string;
+  isbn?: string;
+  edition?: string;
+  language?: string;
+  theme: ThumbTheme;
+  qty: number;
+  unitPrice: number;
+  mrp: number;
+}
+
+export interface PaymentSubmission {
+  id: string;
+  submittedAt: number;
+  method: PaymentMethod;
+  reference: string;
+  amount: number;
+  screenshotName?: string;
+  status: "submitted" | "approved" | "rejected";
+  decidedBy?: string;
+  decidedAt?: number;
+  rejectionReason?: string;
+}
+
+export interface Shipment {
+  mode: "courier" | "self";
+  courier: string;
+  tracking: string;
+  dispatchedAt: number;
+  notes?: string;
+  deliveredAt?: number;
+}
+
+export interface Refund {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  reference: string;
+  status: "pending" | "completed";
+  context: "cancellation" | "return" | "adjustment";
+  recordedBy: string;
+  recordedAt: number;
+  completedAt?: number;
+}
+
+export interface CancellationRequest {
+  requestedAt: number;
+  reason: string;
+  status: "requested" | "approved" | "rejected";
+  decidedBy?: string;
+  decidedAt?: number;
+  note?: string;
+}
+
+export type ReturnReason = "damaged" | "defective" | "incorrect";
+
+export interface ReturnRequest {
+  requestedAt: number;
+  reason: ReturnReason;
+  details: string;
+  photos: string[];
+  preference: "replacement" | "refund";
+  status: "requested" | "approved" | "rejected" | "resolved";
+  decidedBy?: string;
+  decidedAt?: number;
+  decisionNote?: string;
+  replacement?: { courier: string; tracking: string; dispatchedAt: number };
+  resolvedAt?: number;
+}
+
+export interface OrderEvent {
+  id: string;
+  at: number;
+  actor: string;
+  text: string;
+  /** Shown on the customer's order timeline (all events appear in the admin audit history) */
+  customerVisible: boolean;
+}
+
+export interface BookOrder {
+  id: string;
+  number: string;
+  learnerId: string;
+  createdAt: number;
+  items: OrderItem[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+  address: AddressSnapshot;
+  status: OrderStatus;
+  reservationExpiresAt: number;
+  payments: PaymentSubmission[];
+  shipment?: Shipment;
+  hold?: { reason: string; at: number; by: string };
+  cancellation?: CancellationRequest;
+  returnRequest?: ReturnRequest;
+  refunds: Refund[];
+  /** Set when an admin edit changes the total after payment: + = extra due, − = refund due */
+  paymentDifference?: number;
+  events: OrderEvent[];
+}
+
+export interface BookstoreSettings {
+  shippingFee: number;
+  freeShippingThreshold: number;
+  lowStockThreshold: number;
+  reservationHours: number;
+  returnWindowDays: number;
+  deliveryEstimate: string;
+  upiId: string;
+  payeeName: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  ifsc: string;
+  emailAlerts: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  learnerId: string;
+  at: number;
+  title: string;
+  body: string;
+  href?: string;
+  read: boolean;
+  /** Email is intended for this event but only simulated in the prototype */
+  email: boolean;
 }

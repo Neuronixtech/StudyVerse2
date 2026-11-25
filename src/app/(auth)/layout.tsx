@@ -1,12 +1,16 @@
 import { BadgeCheck, Quote, Star } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { PrototypeToolbar } from "@/components/layout/prototype-toolbar";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-1 min-h-dvh lg:grid-cols-[1fr_minmax(0,560px)] xl:grid-cols-[1fr_640px]">
       <div className="flex flex-col px-4 py-6 sm:px-10 lg:px-16">
-        <Logo />
+        <div className="flex items-center justify-between">
+          <Logo />
+          <ThemeToggle />
+        </div>
         <main className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-md">{children}</div>
         </main>

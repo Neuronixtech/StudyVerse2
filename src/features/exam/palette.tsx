@@ -31,13 +31,13 @@ export function PaletteCell({
         "relative inline-grid shrink-0 place-items-center font-bold tabular-nums",
         size === "sm" ? "size-7 text-[11px]" : "size-10 text-sm",
         STYLE[state],
-        current && "outline-2 outline-offset-2 outline-ink",
+        current && "outline-2 outline-offset-2 outline-fg",
         className,
       )}
     >
       {label}
       {state === "answered-review" && (
-        <span className="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full bg-q-answered ring-2 ring-white">
+        <span className="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full bg-q-answered ring-2 ring-surface">
           <Check className="size-2.5 text-white" strokeWidth={4} />
         </span>
       )}

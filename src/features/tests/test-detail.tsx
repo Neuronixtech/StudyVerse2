@@ -88,11 +88,11 @@ export function TestDetail({ testId }: { testId: string }) {
               { icon: <Trophy />, label: "Maximum marks", value: maxScoreOf(test) },
               { icon: <RotateCcw />, label: "Attempts", value: test.attemptLimit === null ? "Unlimited" : `${test.attemptLimit} allowed` },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-line bg-white p-3.5">
+              <div key={s.label} className="rounded-xl border border-line bg-surface p-3.5">
                 <dt className="flex items-center gap-1.5 text-xs font-medium text-slate-500 [&_svg]:size-3.5">
                   {s.icon} {s.label}
                 </dt>
-                <dd className="mt-1 text-lg font-extrabold text-ink">{s.value}</dd>
+                <dd className="mt-1 text-lg font-extrabold text-fg">{s.value}</dd>
               </div>
             ))}
           </dl>
@@ -118,7 +118,7 @@ export function TestDetail({ testId }: { testId: string }) {
                     const sTypes = [...new Set(s.questions.map((q) => q.type))];
                     return (
                       <tr key={s.id} className="border-t border-line">
-                        <td className="px-5 py-3 font-semibold text-ink">{s.name}</td>
+                        <td className="px-5 py-3 font-semibold text-fg">{s.name}</td>
                         <td className="px-5 py-3">{s.questions.length}</td>
                         <td className="px-5 py-3">
                           <div className="flex flex-wrap gap-1">
@@ -143,32 +143,32 @@ export function TestDetail({ testId }: { testId: string }) {
             <ul className="divide-y divide-line text-sm">
               {types.includes("single") && (
                 <li className="flex items-start gap-3 px-5 py-3.5">
-                  <ListChecks className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                  <ListChecks className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" />
                   <span>
-                    <strong className="text-ink">Single correct:</strong> +{m.correct} for a correct answer, {m.incorrect} for an incorrect answer, {m.unattempted} if not attempted.
+                    <strong className="text-fg">Single correct:</strong> +{m.correct} for a correct answer, {m.incorrect} for an incorrect answer, {m.unattempted} if not attempted.
                   </span>
                 </li>
               )}
               {types.includes("multi") && (
                 <li className="flex items-start gap-3 px-5 py-3.5">
-                  <ListChecks className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                  <ListChecks className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" />
                   <span>
-                    <strong className="text-ink">Multi-select:</strong> {describeMultiRule(test.multiMarking, m)}
+                    <strong className="text-fg">Multi-select:</strong> {describeMultiRule(test.multiMarking, m)}
                   </span>
                 </li>
               )}
               {types.includes("numerical") && (
                 <li className="flex items-start gap-3 px-5 py-3.5">
-                  <ListChecks className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                  <ListChecks className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" />
                   <span>
-                    <strong className="text-ink">Numerical answer:</strong> +{m.correct} if within the accepted tolerance, {m.incorrect} otherwise. Enter values using the on-screen keypad.
+                    <strong className="text-fg">Numerical answer:</strong> +{m.correct} if within the accepted tolerance, {m.incorrect} otherwise. Enter values using the on-screen keypad.
                   </span>
                 </li>
               )}
               <li className="flex items-start gap-3 px-5 py-3.5">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" />
                 <span>
-                  <strong className="text-ink">Results:</strong>{" "}
+                  <strong className="text-fg">Results:</strong>{" "}
                   {test.resultRelease === "immediate"
                     ? "Score and detailed solutions are shown immediately after submission."
                     : test.solutionsReleased
@@ -195,7 +195,7 @@ export function TestDetail({ testId }: { testId: string }) {
                   <li key={a.id} className="flex flex-wrap items-center gap-4 px-5 py-3.5">
                     <span className="grid size-9 place-items-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">#{attempts.length - i}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-ink">
+                      <p className="text-sm font-semibold text-fg">
                         {a.result.score}/{a.result.maxScore}
                         <span className="ml-2 text-xs font-medium text-slate-500">({percent(Math.max(0, a.result.score), a.result.maxScore)}%)</span>
                         {a.id === best?.id && (
@@ -225,7 +225,7 @@ export function TestDetail({ testId }: { testId: string }) {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-line bg-white p-5 shadow-card lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-line bg-surface p-5 shadow-card lg:sticky lg:top-24">
             {!ready ? (
               <div className="space-y-3">
                 <Skeleton className="h-5 w-2/3" />
@@ -233,8 +233,8 @@ export function TestDetail({ testId }: { testId: string }) {
               </div>
             ) : access.allowed ? (
               <>
-                <p className="flex items-center gap-2 text-base font-bold text-ink">
-                  {test.isDemo ? <Gift className="size-5 text-brand-600" /> : <ShieldCheck className="size-5 text-emerald-600" />}
+                <p className="flex items-center gap-2 text-base font-bold text-fg">
+                  {test.isDemo ? <Gift className="size-5 text-brand-600 dark:text-brand-400" /> : <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />}
                   {test.isDemo ? "Free for everyone" : "Included in your subscription"}
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
@@ -281,13 +281,13 @@ export function TestDetail({ testId }: { testId: string }) {
           </div>
 
           {linkedCourse && (
-            <Link href={`/courses/${linkedCourse.slug}`} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4 shadow-card hover:border-brand-300">
-              <span className="grid size-10 place-items-center rounded-xl bg-brand-50 text-brand-700">
+            <Link href={`/courses/${linkedCourse.slug}`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card hover:border-brand-300">
+              <span className="grid size-10 place-items-center rounded-xl bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300">
                 <BookOpen className="size-5" />
               </span>
               <span className="min-w-0">
                 <span className="block text-xs text-slate-500">Linked course</span>
-                <span className="block truncate text-sm font-bold text-ink">{linkedCourse.title}</span>
+                <span className="block truncate text-sm font-bold text-fg">{linkedCourse.title}</span>
               </span>
             </Link>
           )}

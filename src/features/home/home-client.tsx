@@ -25,7 +25,7 @@ export function HeroSearch() {
         if (exam) params.set("exam", exam);
         router.push(`/courses${params.size ? `?${params}` : ""}`);
       }}
-      className="flex w-full max-w-xl flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-card sm:flex-row sm:items-center sm:rounded-full sm:pl-5"
+      className="flex w-full max-w-xl flex-col gap-2 rounded-2xl border border-line bg-surface p-2 shadow-card sm:flex-row sm:items-center sm:rounded-full sm:pl-5"
     >
       <label className="flex flex-1 items-center gap-2.5 px-3 sm:px-0">
         <Search className="size-4 shrink-0 text-slate-400" aria-hidden />
@@ -34,7 +34,7 @@ export function HeroSearch() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search kinematics, organic, calculus…"
-          className="h-10 w-full bg-transparent text-sm text-ink outline-none placeholder:text-slate-400"
+          className="h-10 w-full bg-transparent text-sm text-fg outline-none placeholder:text-slate-400"
         />
       </label>
       <div className="flex items-center gap-2">
@@ -115,25 +115,25 @@ export function PricingTeaser() {
           <div
             key={p.days}
             className={cn(
-              "relative flex flex-col rounded-2xl border bg-white p-6 shadow-card",
-              popular ? "border-brand-500 ring-4 ring-brand-100" : "border-line",
+              "relative flex flex-col rounded-2xl border bg-surface p-6 shadow-card",
+              popular ? "border-brand-500 ring-4 ring-brand-100 dark:ring-brand-400/20" : "border-line",
             )}
           >
             {popular && (
               <span className="absolute -top-3 left-6 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white shadow">Most popular</span>
             )}
-            <p className="text-sm font-bold text-brand-700">{p.label}</p>
+            <p className="text-sm font-bold text-brand-700 dark:text-brand-300">{p.label}</p>
             <p className="mt-2 flex items-baseline gap-1.5">
-              <span className="text-4xl font-extrabold tracking-tight text-ink">{formatINR(p.price)}</span>
+              <span className="text-4xl font-extrabold tracking-tight text-fg">{formatINR(p.price)}</span>
               <span className="text-sm text-slate-500">/ {p.days} days</span>
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              ≈ {formatINR(perMonth)} per month{save > 0 && <span className="ml-1.5 font-semibold text-emerald-600">Save {save}%</span>}
+              ≈ {formatINR(perMonth)} per month{save > 0 && <span className="ml-1.5 font-semibold text-emerald-600 dark:text-emerald-400">Save {save}%</span>}
             </p>
             <ul className="mt-5 space-y-2.5 text-sm">
               {["Every published course & lesson", "All regular practice tests", "Detailed solutions when released", "Progress & attempt history"].map((f) => (
                 <li key={f} className="flex items-start gap-2.5">
-                  <Check className="mt-0.5 size-4 shrink-0 text-brand-600" /> {f}
+                  <Check className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" /> {f}
                 </li>
               ))}
             </ul>

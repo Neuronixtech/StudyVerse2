@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ClipboardList, CreditCard, LayoutDashboard, LockKeyhole, UserRound } from "lucide-react";
+import { BookOpen, ClipboardList, CreditCard, LayoutDashboard, LockKeyhole, MapPin, Package, UserRound } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Avatar, Skeleton } from "@/components/ui/feedback";
 import { subscriptionLabel } from "@/lib/access";
@@ -15,6 +15,8 @@ const NAV = [
   { href: "/dashboard/courses", label: "My courses", icon: BookOpen },
   { href: "/dashboard/attempts", label: "Attempt history", icon: ClipboardList },
   { href: "/dashboard/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/dashboard/orders", label: "Book orders", icon: Package },
+  { href: "/dashboard/addresses", label: "Addresses", icon: MapPin },
   { href: "/dashboard/profile", label: "Profile & settings", icon: UserRound },
 ];
 
@@ -46,8 +48,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="container-page py-20">
         {hiddenChildren}
-        <div className="mx-auto max-w-md rounded-2xl border border-line bg-white p-8 text-center shadow-card">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+        <div className="mx-auto max-w-md rounded-2xl border border-line bg-surface p-8 text-center shadow-card">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-50 dark:bg-brand-400/10 text-brand-600 dark:text-brand-400">
             <LockKeyhole className="size-7" />
           </span>
           <h1 className="mt-5 text-2xl font-extrabold">Sign in to view your dashboard</h1>
@@ -69,11 +71,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="container-page grid grid-cols-1 gap-8 py-8 lg:grid-cols-[250px_1fr] lg:py-10">
       <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-        <div className="hidden rounded-2xl border border-line bg-white p-4 shadow-card lg:block">
+        <div className="hidden rounded-2xl border border-line bg-surface p-4 shadow-card lg:block">
           <div className="flex items-center gap-3 border-b border-line pb-4">
             <Avatar name={learner.name} size="lg" />
             <div className="min-w-0">
-              <p className="truncate font-bold text-ink">{learner.name}</p>
+              <p className="truncate font-bold text-fg">{learner.name}</p>
               <p className="text-xs text-slate-500">
                 {examName(learner.targetExam)} {learner.targetYear}
               </p>
@@ -92,7 +94,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
-                    active ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-50 hover:text-ink",
+                    active ? "bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300" : "text-slate-600 hover:bg-slate-50 hover:text-fg",
                   )}
                 >
                   <Icon className="size-4" /> {label}
@@ -111,7 +113,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold",
-                  active ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-white text-slate-600",
+                  active ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-surface text-slate-600",
                 )}
               >
                 <Icon className="size-4" /> {label}

@@ -37,7 +37,7 @@ function copy(text: string, label: string) {
 }
 
 /** Decorative, deterministic QR-like pattern. Clearly labelled as non-payable. */
-function DemoQr() {
+export function DemoQr() {
   const cells = Array.from({ length: 21 * 21 }, (_, i) => {
     const x = i % 21;
     const y = Math.floor(i / 21);
@@ -165,21 +165,21 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
                     setAmount("");
                   }}
                   className={cn(
-                    "relative rounded-2xl border-2 bg-white p-5 text-left transition-all",
-                    selected ? "border-brand-500 shadow-lift ring-4 ring-brand-100" : "border-line hover:border-brand-200",
+                    "relative rounded-2xl border-2 bg-surface p-5 text-left transition-all",
+                    selected ? "border-brand-500 shadow-lift ring-4 ring-brand-100 dark:ring-brand-400/20" : "border-line hover:border-brand-200 dark:hover:border-brand-400/30",
                   )}
                 >
                   {p.days === 90 && <span className="absolute -top-3 right-5 rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-bold text-white">Most popular</span>}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-brand-700">{p.label}</span>
+                    <span className="text-sm font-bold text-brand-700 dark:text-brand-300">{p.label}</span>
                     <span className={cn("grid size-5 place-items-center rounded-full border-2", selected ? "border-brand-600 bg-brand-600" : "border-slate-300")}>
                       {selected && <Check className="size-3 text-white" strokeWidth={3} />}
                     </span>
                   </div>
-                  <p className="mt-3 text-3xl font-extrabold text-ink">{formatINR(p.price)}</p>
+                  <p className="mt-3 text-3xl font-extrabold text-fg">{formatINR(p.price)}</p>
                   <p className="text-sm text-slate-500">{p.days} days of full access</p>
                   <p className="mt-3 text-xs text-slate-500">
-                    ≈ {formatINR(perMonth)}/month {save > 0 && <span className="font-bold text-emerald-600">· save {save}%</span>}
+                    ≈ {formatINR(perMonth)}/month {save > 0 && <span className="font-bold text-emerald-600 dark:text-emerald-400">· save {save}%</span>}
                   </p>
                 </button>
               );
@@ -192,9 +192,9 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
           <section aria-labelledby="step2">
             <StepTitle n={2} id="step2" title="Pay outside StudyVerse" />
             <Card className="mt-5 p-5">
-              <div className="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3">
-                <span className="text-sm font-semibold text-brand-900">Amount to pay</span>
-                <span className="text-2xl font-extrabold text-brand-800">{plan ? formatINR(plan.price) : "—"}</span>
+              <div className="flex items-center justify-between rounded-xl bg-brand-50 dark:bg-brand-400/10 px-4 py-3">
+                <span className="text-sm font-semibold text-brand-900 dark:text-brand-100">Amount to pay</span>
+                <span className="text-2xl font-extrabold text-brand-800 dark:text-brand-200">{plan ? formatINR(plan.price) : "—"}</span>
               </div>
               <Segmented
                 label="Payment method"
@@ -231,7 +231,7 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
             <ul className="mt-5 space-y-2 text-sm">
               {state.payment.terms.map((t) => (
                 <li key={t} className="flex items-start gap-2.5 text-slate-600">
-                  <BadgeCheck className="mt-0.5 size-4 shrink-0 text-brand-600" /> {t}
+                  <BadgeCheck className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" /> {t}
                 </li>
               ))}
             </ul>
@@ -247,7 +247,7 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
                 <UnlockPrompt learner={undefined} sub={sub} next={`/subscribe?plan=${planDays}`} what="activation requests" />
               ) : submitted ? (
                 <Card className="p-6 text-center">
-                  <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+                  <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
                     <Clock className="size-7" />
                   </span>
                   <h3 className="mt-4 text-xl font-extrabold">Request submitted</h3>
@@ -270,7 +270,7 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
               ) : sub.pending ? (
                 <Card className="p-6">
                   <div className="flex items-start gap-4">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
                       <Clock className="size-6" />
                     </span>
                     <div>
@@ -298,7 +298,7 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
                       </Callout>
                     )}
                     <fieldset>
-                      <legend className="mb-2 text-sm font-semibold text-ink">Payment method</legend>
+                      <legend className="mb-2 text-sm font-semibold text-fg">Payment method</legend>
                       <Segmented
                         label="Payment method used"
                         value={method}
@@ -342,7 +342,7 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
                     </Field>
 
                     <div>
-                      <p className="text-sm font-semibold text-ink">
+                      <p className="text-sm font-semibold text-fg">
                         Payment screenshot <span className="font-normal text-slate-400">(optional)</span>
                       </p>
                       <input
@@ -358,10 +358,10 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
                         }}
                       />
                       {file ? (
-                        <div className={cn("mt-2 flex items-center gap-3 rounded-xl border p-3", errors.file ? "border-red-300 bg-red-50" : "border-line bg-slate-50")}>
-                          <FileImage className="size-5 text-brand-600" />
+                        <div className={cn("mt-2 flex items-center gap-3 rounded-xl border p-3", errors.file ? "border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10" : "border-line bg-slate-50")}>
+                          <FileImage className="size-5 text-brand-600 dark:text-brand-400" />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-ink">{file.name}</p>
+                            <p className="truncate text-sm font-semibold text-fg">{file.name}</p>
                             <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB · stays in your browser</p>
                           </div>
                           <button
@@ -371,20 +371,20 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
                               if (fileRef.current) fileRef.current.value = "";
                               setErrors((x) => ({ ...x, file: undefined }));
                             }}
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-white hover:text-red-600"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-surface hover:text-red-600 dark:hover:text-red-400"
                             aria-label="Remove screenshot"
                           >
                             <Trash2 className="size-4" />
                           </button>
                         </div>
                       ) : (
-                        <label htmlFor="proof" className="mt-2 flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed border-line-strong px-4 py-6 text-center transition-colors hover:border-brand-400 hover:bg-brand-50/40">
+                        <label htmlFor="proof" className="mt-2 flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed border-line-strong px-4 py-6 text-center transition-colors hover:border-brand-400 hover:bg-brand-50/40 dark:hover:bg-brand-400/10">
                           <Paperclip className="size-5 text-slate-400" />
-                          <span className="text-sm font-semibold text-brand-700">Attach screenshot</span>
+                          <span className="text-sm font-semibold text-brand-700 dark:text-brand-300">Attach screenshot</span>
                           <span className="text-xs text-slate-500">PNG, JPG or PDF up to 5 MB</span>
                         </label>
                       )}
-                      {errors.file && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.file}</p>}
+                      {errors.file && <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{errors.file}</p>}
                     </div>
 
                     <Field label="Note for the admin (optional)">
@@ -436,7 +436,7 @@ function Subscribe({ initialPlan }: { initialPlan: PlanDays }) {
             The amount differs from the plan price ({formatINR(plan.price)}). The admin may reject mismatched payments.
           </Callout>
         )}
-        <p className="mt-4 flex items-start gap-2 text-xs text-amber-800">
+        <p className="mt-4 flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
           <FlaskConical className="mt-px size-3.5 shrink-0" /> Prototype: the request is stored only in this browser.
         </p>
       </Modal>
@@ -472,14 +472,14 @@ function StepTitle({ n, title, id }: { n: number; title: string; id: string }) {
   );
 }
 
-function CopyRow({ label, value }: { label: string; value: string }) {
+export function CopyRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-line px-3.5 py-2.5">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">{label}</p>
-        <p className="truncate font-mono text-sm font-bold text-ink">{value}</p>
+        <p className="truncate font-mono text-sm font-bold text-fg">{value}</p>
       </div>
-      <button type="button" onClick={() => copy(value, label)} className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-brand-700" aria-label={`Copy ${label}`}>
+      <button type="button" onClick={() => copy(value, label)} className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-brand-700 dark:hover:text-brand-300" aria-label={`Copy ${label}`}>
         <Copy className="size-4" />
       </button>
     </div>
@@ -490,7 +490,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="text-slate-500">{k}</dt>
-      <dd className="text-right font-semibold text-ink">{v}</dd>
+      <dd className="text-right font-semibold text-fg">{v}</dd>
     </div>
   );
 }

@@ -123,14 +123,14 @@ export function CoursesAdminPage() {
                   <Link href={`/admin/courses/${c.id}`} className="flex min-w-0 flex-1 items-center gap-4">
                     <CourseThumb theme={c.theme} subjectIds={c.subjectIds} size="sm" className="h-14 w-20 shrink-0 rounded-lg" />
                     <div className="min-w-0">
-                      <p className="truncate font-bold text-ink hover:text-brand-700">{c.title}</p>
+                      <p className="truncate font-bold text-fg hover:text-brand-700 dark:hover:text-brand-300">{c.title}</p>
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
                         <span>{c.subjectIds.map(subjectName).join(", ")}</span>·<span>{c.examIds.map(examShort).join(", ") || "No exam"}</span>·
                         <span>
                           {s.moduleCount} modules, {s.lessonCount} lessons
                         </span>
                         {!s.preview && (
-                          <span className="inline-flex items-center gap-1 font-semibold text-red-600">
+                          <span className="inline-flex items-center gap-1 font-semibold text-red-600 dark:text-red-400">
                             <TriangleAlert className="size-3" /> no preview
                           </span>
                         )}
@@ -297,7 +297,7 @@ export function CourseCreatePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link href="/admin/courses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-ink">
+      <Link href="/admin/courses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg">
         <ArrowLeft className="size-4" /> Courses
       </Link>
       <PageHeader title="New course" description="Start with the basics. The course is saved as a draft and stays hidden until you publish it." />
@@ -344,7 +344,7 @@ export function CourseCreatePage() {
 function ThemePicker({ value, onChange, subjects }: { value: ThumbTheme; onChange: (t: ThumbTheme) => void; subjects: SubjectId[] }) {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-semibold text-ink">Thumbnail style</legend>
+      <legend className="mb-2 text-sm font-semibold text-fg">Thumbnail style</legend>
       <div className="flex flex-wrap items-center gap-3">
         {(Object.keys(THEMES) as ThumbTheme[]).map((t) => (
           <button key={t} type="button" onClick={() => onChange(t)} aria-pressed={value === t} aria-label={`${THEMES[t].label} theme`} className={cn("rounded-xl p-0.5 ring-2 transition", value === t ? "ring-brand-500" : "ring-transparent hover:ring-slate-200")}>
@@ -419,7 +419,7 @@ function CourseEditor({ course, adminId }: { course: Course; adminId: string }) 
 
   return (
     <div className="space-y-6 pb-24">
-      <Link href="/admin/courses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-ink">
+      <Link href="/admin/courses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg">
         <ArrowLeft className="size-4" /> Courses
       </Link>
 
@@ -497,9 +497,9 @@ function CourseEditor({ course, adminId }: { course: Course; adminId: string }) 
       )}
 
       {/* Sticky save bar */}
-      <div className={cn("fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur transition-transform lg:left-64", dirty ? "translate-y-0" : "invisible translate-y-full")} aria-hidden={!dirty}>
+      <div className={cn("fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur transition-transform lg:left-64", dirty ? "translate-y-0" : "invisible translate-y-full")} aria-hidden={!dirty}>
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-8">
-          <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <p className="flex items-center gap-2 text-sm font-semibold text-fg">
             <span className="size-2 rounded-full bg-amber-500" /> Unsaved changes
           </p>
           <div className="flex gap-2">
@@ -558,7 +558,7 @@ function DetailsForm({ draft, setDraft, errors }: { draft: Course; setDraft: (c:
             </Field>
           </div>
           <div>
-            <p className="text-sm font-semibold text-ink">What learners will learn</p>
+            <p className="text-sm font-semibold text-fg">What learners will learn</p>
             <ul className="mt-2 space-y-2">
               {draft.highlights.map((h, i) => (
                 <li key={`${h}-${i}`} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
@@ -653,13 +653,13 @@ function CurriculumEditor({ draft, setDraft }: { draft: Course; setDraft: (c: Co
       {draft.modules.map((m, mi) => (
         <Card key={m.id}>
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-100 text-sm font-extrabold text-brand-700">{mi + 1}</span>
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-100 dark:bg-brand-400/15 text-sm font-extrabold text-brand-700 dark:text-brand-300">{mi + 1}</span>
             <input
               value={m.title}
               onChange={(e) => updateModules(draft.modules.map((x) => (x.id === m.id ? { ...x, title: e.target.value } : x)))}
               aria-label={`Module ${mi + 1} title`}
               placeholder="Module title"
-              className={cn("min-w-0 flex-1 rounded-md border border-transparent px-2 py-1.5 text-base font-bold text-ink outline-none hover:border-line focus:border-brand-500 focus:shadow-ring", !m.title.trim() && "border-red-300")}
+              className={cn("min-w-0 flex-1 rounded-md border border-transparent px-2 py-1.5 text-base font-bold text-fg outline-none hover:border-line focus:border-brand-500 focus:shadow-ring", !m.title.trim() && "border-red-300 dark:border-red-500/40")}
             />
             <div className="flex items-center gap-0.5">
               <IconButton label="Move module up" size="sm" disabled={mi === 0} onClick={() => updateModules(moveItem(draft.modules, mi, mi - 1))}>
@@ -671,7 +671,7 @@ function CurriculumEditor({ draft, setDraft }: { draft: Course; setDraft: (c: Co
               <IconButton
                 label="Delete module"
                 size="sm"
-                className="hover:text-red-600"
+                className="hover:text-red-600 dark:hover:text-red-400"
                 onClick={() => (m.lessons.length ? setConfirmDelete({ type: "module", moduleId: m.id }) : updateModules(draft.modules.filter((x) => x.id !== m.id)))}
               >
                 <Trash2 />
@@ -687,7 +687,7 @@ function CurriculumEditor({ draft, setDraft }: { draft: Course; setDraft: (c: Co
                   <GripVertical className="size-4 shrink-0 text-slate-300" aria-hidden />
                   <span className="w-6 shrink-0 text-xs font-bold text-slate-400">{li + 1}</span>
                   {l.video.kind === "upload" ? <FileVideo className="size-4 shrink-0 text-slate-400" aria-label="Uploaded video" /> : <Link2 className="size-4 shrink-0 text-slate-400" aria-label="External URL" />}
-                  <button type="button" onClick={() => setEditing({ moduleId: m.id, lesson: l })} className="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink hover:text-brand-700">
+                  <button type="button" onClick={() => setEditing({ moduleId: m.id, lesson: l })} className="min-w-0 flex-1 truncate text-left text-sm font-medium text-fg hover:text-brand-700 dark:hover:text-brand-300">
                     {l.title}
                   </button>
                   {l.isPreview && <Badge tone="brand" size="xs">Preview</Badge>}
@@ -702,7 +702,7 @@ function CurriculumEditor({ draft, setDraft }: { draft: Course; setDraft: (c: Co
                     <IconButton label="Edit lesson" size="sm" onClick={() => setEditing({ moduleId: m.id, lesson: l })}>
                       <Pencil />
                     </IconButton>
-                    <IconButton label="Delete lesson" size="sm" className="hover:text-red-600" onClick={() => setConfirmDelete({ type: "lesson", moduleId: m.id, lessonId: l.id })}>
+                    <IconButton label="Delete lesson" size="sm" className="hover:text-red-600 dark:hover:text-red-400" onClick={() => setConfirmDelete({ type: "lesson", moduleId: m.id, lessonId: l.id })}>
                       <Trash2 />
                     </IconButton>
                   </div>
@@ -837,7 +837,7 @@ function LessonDialog({
           {(p) => <Textarea {...p} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />}
         </Field>
         <fieldset>
-          <legend className="text-sm font-semibold text-ink">
+          <legend className="text-sm font-semibold text-fg">
             Duration <span className="text-red-500">*</span>
           </legend>
           <div className="mt-1.5 flex items-center gap-2">
@@ -846,10 +846,10 @@ function LessonDialog({
             <Input aria-label="Seconds" inputMode="numeric" value={secs} onChange={(e) => setSecs(e.target.value.replace(/\D/g, "").slice(0, 2))} className="w-20" />
             <span className="text-sm text-slate-500">sec</span>
           </div>
-          {errors.duration && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.duration}</p>}
+          {errors.duration && <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{errors.duration}</p>}
         </fieldset>
         <div>
-          <p className="mb-2 text-sm font-semibold text-ink">Video source</p>
+          <p className="mb-2 text-sm font-semibold text-fg">Video source</p>
           <Segmented
             label="Video source"
             value={kind}
@@ -865,23 +865,23 @@ function LessonDialog({
                 <input id="video-file" type="file" accept="video/*" className="sr-only" onChange={(e) => e.target.files?.[0] && startUpload(e.target.files[0].name)} />
                 {fileName ? (
                   <div className="flex items-center gap-3">
-                    <FileVideo className="size-6 text-brand-600" />
+                    <FileVideo className="size-6 text-brand-600 dark:text-brand-400" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-ink">{fileName}</p>
+                      <p className="truncate text-sm font-semibold text-fg">{fileName}</p>
                       {uploadPct !== null && uploadPct < 100 ? (
                         <ProgressBar value={uploadPct} size="sm" className="mt-1.5" label="Upload progress" />
                       ) : (
-                        <p className="text-xs text-emerald-700">Ready (simulated upload)</p>
+                        <p className="text-xs text-emerald-700 dark:text-emerald-300">Ready (simulated upload)</p>
                       )}
                     </div>
-                    <label htmlFor="video-file" className="cursor-pointer text-sm font-semibold text-brand-700 hover:underline">
+                    <label htmlFor="video-file" className="cursor-pointer text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                       Replace
                     </label>
                   </div>
                 ) : (
                   <label htmlFor="video-file" className="flex cursor-pointer flex-col items-center gap-1 text-center">
                     <Upload className="size-6 text-slate-400" />
-                    <span className="text-sm font-semibold text-brand-700">Choose a video file</span>
+                    <span className="text-sm font-semibold text-brand-700 dark:text-brand-300">Choose a video file</span>
                     <span className="text-xs text-slate-500">MP4 or MOV</span>
                   </label>
                 )}
@@ -889,14 +889,14 @@ function LessonDialog({
             ) : (
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://videos.example.com/lesson" aria-label="Video URL" />
             )}
-            {errors.video && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.video}</p>}
+            {errors.video && <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{errors.video}</p>}
             <SimulatedNote className="mt-2">No real upload, transcoding or streaming happens in the UI-first phase.</SimulatedNote>
           </div>
         </div>
         <div className="rounded-xl border border-line p-4">
           <Switch checked={isPreview} onChange={setIsPreview} label="Free preview lesson" description="Visible to visitors and learners without a subscription." />
           {isPreview && currentPreview && currentPreview.id !== lesson?.id && (
-            <p className="mt-3 flex items-start gap-2 text-xs font-medium text-amber-800">
+            <p className="mt-3 flex items-start gap-2 text-xs font-medium text-amber-800 dark:text-amber-200">
               <TriangleAlert className="mt-px size-3.5 shrink-0" /> This replaces “{currentPreview.title}” as the course&apos;s free preview.
             </p>
           )}

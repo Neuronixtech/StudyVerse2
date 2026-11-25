@@ -78,7 +78,7 @@ export function DashboardOverview() {
           <div className="grid grid-cols-1 sm:grid-cols-[220px_1fr]">
             <CourseThumb theme={resume.course.theme} subjectIds={resume.course.subjectIds} className="aspect-video sm:aspect-auto sm:h-full" />
             <div className="p-5 sm:p-6">
-              <p className="text-xs font-bold tracking-wide text-brand-700 uppercase">Continue learning</p>
+              <p className="text-xs font-bold tracking-wide text-brand-700 dark:text-brand-300 uppercase">Continue learning</p>
               <h2 className="mt-1 text-lg font-extrabold">{resume.progress.resumeLesson.title}</h2>
               <p className="text-sm text-slate-500">{resume.course.title}</p>
               <div className="mt-4">
@@ -86,7 +86,7 @@ export function DashboardOverview() {
                   <span>
                     {resume.progress.completed} of {resume.progress.total} lessons watched
                   </span>
-                  <span className="text-brand-700">{resume.progress.percent}%</span>
+                  <span className="text-brand-700 dark:text-brand-300">{resume.progress.percent}%</span>
                 </div>
                 <ProgressBar value={resume.progress.percent} label="Course progress" />
               </div>
@@ -113,7 +113,7 @@ export function DashboardOverview() {
           <CardHeader
             title="My courses"
             action={
-              <Link href="/dashboard/courses" className="text-sm font-semibold text-brand-700 hover:underline">
+              <Link href="/dashboard/courses" className="text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                 View all
               </Link>
             }
@@ -127,7 +127,7 @@ export function DashboardOverview() {
                   <Link href={`/courses/${course.slug}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50">
                     <CourseThumb theme={course.theme} subjectIds={course.subjectIds} size="sm" className="size-12 shrink-0 rounded-xl" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-ink">{course.title}</p>
+                      <p className="truncate text-sm font-bold text-fg">{course.title}</p>
                       <div className="mt-1.5 flex items-center gap-3">
                         <ProgressBar value={progress.percent} size="sm" className="flex-1" label={`${course.title} progress`} />
                         <span className="text-xs font-semibold text-slate-500">{progress.percent}%</span>
@@ -144,7 +144,7 @@ export function DashboardOverview() {
           <CardHeader
             title="Recent test attempts"
             action={
-              <Link href="/dashboard/attempts" className="text-sm font-semibold text-brand-700 hover:underline">
+              <Link href="/dashboard/attempts" className="text-sm font-semibold text-brand-700 dark:text-brand-300 hover:underline">
                 View history
               </Link>
             }
@@ -182,11 +182,11 @@ function AttemptRow({ attempt }: { attempt: Attempt }) {
   return (
     <li>
       <Link href={`/results/${attempt.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50">
-        <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl text-sm font-extrabold", pct >= 70 ? "bg-emerald-50 text-emerald-700" : pct >= 40 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600")}>
+        <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl text-sm font-extrabold", pct >= 70 ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : pct >= 40 ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400")}>
           {pct}%
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-ink">{attempt.snapshot.title}</p>
+          <p className="truncate text-sm font-bold text-fg">{attempt.snapshot.title}</p>
           <p className="text-xs text-slate-500">
             {attempt.result.score}/{attempt.result.maxScore} · {formatDate(attempt.submittedAt)}
           </p>
@@ -244,7 +244,7 @@ export function MyCourses() {
                 <Card className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                   <CourseThumb theme={course.theme} subjectIds={course.subjectIds} className="aspect-video w-full shrink-0 rounded-xl sm:w-44" />
                   <div className="min-w-0 flex-1">
-                    <Link href={`/courses/${course.slug}`} className="text-base font-bold text-ink hover:text-brand-700">
+                    <Link href={`/courses/${course.slug}`} className="text-base font-bold text-fg hover:text-brand-700 dark:hover:text-brand-300">
                       {course.title}
                     </Link>
                     <p className="text-sm text-slate-500">{course.instructor.name}</p>
@@ -319,11 +319,11 @@ export function AttemptHistory() {
               const best = bestAttempt(list)!;
               return (
                 <Card key={testId} className="p-4">
-                  <p className="truncate text-sm font-bold text-ink">{list[0].snapshot.title}</p>
+                  <p className="truncate text-sm font-bold text-fg">{list[0].snapshot.title}</p>
                   <div className="mt-3 flex items-end justify-between">
                     <div>
                       <p className="text-xs text-slate-500">Best score</p>
-                      <p className="text-xl font-extrabold text-ink">
+                      <p className="text-xl font-extrabold text-fg">
                         {best.result.score}
                         <span className="text-sm font-semibold text-slate-400">/{best.result.maxScore}</span>
                       </p>
@@ -373,11 +373,11 @@ export function AttemptHistory() {
                     return (
                       <tr key={a.id} className="border-t border-line">
                         <td className="px-5 py-3">
-                          <p className="font-semibold text-ink">{a.snapshot.title}</p>
+                          <p className="font-semibold text-fg">{a.snapshot.title}</p>
                           <p className="flex items-center gap-2 text-xs text-slate-500">
                             v{a.snapshot.version}
                             {a.autoSubmitted && (
-                              <span className="inline-flex items-center gap-1 text-amber-700">
+                              <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300">
                                 <TimerOff className="size-3" /> auto-submitted
                               </span>
                             )}
@@ -385,7 +385,7 @@ export function AttemptHistory() {
                         </td>
                         <td className="px-3 py-3 text-slate-600">{formatDateTime(a.submittedAt)}</td>
                         <td className="px-3 py-3">
-                          <span className="font-bold text-ink">
+                          <span className="font-bold text-fg">
                             {a.result.score}/{a.result.maxScore}
                           </span>
                           {best?.id === a.id && (byTest.get(a.testId)?.length ?? 0) > 1 && (
@@ -395,7 +395,7 @@ export function AttemptHistory() {
                           )}
                         </td>
                         <td className="px-3 py-3 font-mono text-xs">
-                          <span className="text-emerald-700">{a.result.correct + a.result.partial}</span> / <span className="text-red-600">{a.result.incorrect}</span> / <span className="text-slate-500">{a.result.unattempted}</span>
+                          <span className="text-emerald-700 dark:text-emerald-300">{a.result.correct + a.result.partial}</span> / <span className="text-red-600 dark:text-red-400">{a.result.incorrect}</span> / <span className="text-slate-500">{a.result.unattempted}</span>
                         </td>
                         <td className="px-3 py-3 text-slate-600">{formatDuration(a.timeTakenSec)}</td>
                         <td className="px-5 py-3 text-right">
@@ -459,7 +459,7 @@ export function MySubscription() {
                 <div className="flex flex-wrap items-start gap-3">
                   <StatusIcon status={r.status} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-ink">
+                    <p className="text-sm font-bold text-fg">
                       {r.planDays}-day plan · {formatINR(r.amount)} via {r.method === "upi" ? "UPI" : "bank transfer"}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -467,12 +467,12 @@ export function MySubscription() {
                       {r.screenshotName && <> · screenshot: {r.screenshotName}</>}
                     </p>
                     {r.status === "approved" && r.reviewedAt && (
-                      <p className="mt-1 text-xs text-emerald-700">
+                      <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
                         Approved for {r.approvedDays} days by {adminName(r.reviewedBy)} on {formatDate(r.reviewedAt)}
                       </p>
                     )}
                     {r.status === "rejected" && (
-                      <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800 ring-1 ring-red-200">
+                      <p className="mt-2 rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-2 text-xs text-red-800 dark:text-red-200 ring-1 ring-red-200 dark:ring-red-500/30">
                         <strong>Rejected:</strong> {r.rejectionReason}
                       </p>
                     )}
@@ -493,9 +493,9 @@ export function MySubscription() {
           <ol className="relative space-y-5 px-5 py-5">
             {[...sub.periods].reverse().map((p) => (
               <li key={p.id} className="flex gap-4">
-                <span className="mt-1 size-3 shrink-0 rounded-full bg-brand-500 ring-4 ring-brand-100" />
+                <span className="mt-1 size-3 shrink-0 rounded-full bg-brand-500 ring-4 ring-brand-100 dark:ring-brand-400/20" />
                 <div>
-                  <p className="text-sm font-bold text-ink">{p.days} days</p>
+                  <p className="text-sm font-bold text-fg">{p.days} days</p>
                   <p className="text-xs text-slate-500">
                     {formatDate(p.startsAt)} → {formatDate(p.expiresAt)} · activated {formatDate(p.activatedAt)} by {adminName(p.activatedBy)}
                   </p>
@@ -633,7 +633,7 @@ function ProfileForm({ learner }: { learner: Learner }) {
         <CardHeader title="Account" />
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-ink">Member since {formatDate(learner.joinedAt)}</p>
+            <p className="text-sm font-semibold text-fg">Member since {formatDate(learner.joinedAt)}</p>
             <p className="text-xs text-slate-500">Account deletion and data-retention policy are still to be decided, so deletion isn&apos;t available in the prototype.</p>
           </div>
           <div className="flex gap-2">

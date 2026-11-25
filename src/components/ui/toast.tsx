@@ -54,23 +54,23 @@ export function Toaster() {
         <div
           key={t.id}
           role="status"
-          className="pointer-events-auto flex w-full max-w-sm animate-slide-up items-start gap-3 rounded-xl border border-line bg-white p-3.5 shadow-lift"
+          className="pointer-events-auto flex w-full max-w-sm animate-slide-up items-start gap-3 rounded-xl border border-line bg-surface p-3.5 shadow-lift"
         >
           <span
             className={cn(
               "mt-0.5 shrink-0 [&_svg]:size-5",
-              t.tone === "success" && "text-emerald-600",
-              t.tone === "error" && "text-red-600",
-              t.tone === "info" && "text-brand-600",
+              t.tone === "success" && "text-emerald-600 dark:text-emerald-400",
+              t.tone === "error" && "text-red-600 dark:text-red-400",
+              t.tone === "info" && "text-brand-600 dark:text-brand-400",
             )}
           >
             {t.tone === "success" ? <CircleCheck /> : t.tone === "error" ? <CircleX /> : <Info />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ink">{t.title}</p>
+            <p className="text-sm font-semibold text-fg">{t.title}</p>
             {t.description && <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{t.description}</p>}
             {t.simulated && (
-              <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 uppercase ring-1 ring-amber-200">
+              <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 dark:text-amber-200 uppercase ring-1 ring-amber-200 dark:ring-amber-500/30">
                 <FlaskConical className="size-3" /> Simulated · prototype only
               </span>
             )}
@@ -78,7 +78,7 @@ export function Toaster() {
           <button
             type="button"
             onClick={() => dismiss(t.id)}
-            className="-m-1 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-ink"
+            className="-m-1 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-fg"
             aria-label="Dismiss notification"
           >
             <X className="size-4" />

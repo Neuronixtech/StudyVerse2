@@ -70,8 +70,8 @@ export function Tabs<T extends string>({
             className={cn(
               "inline-flex shrink-0 items-center gap-2 text-sm font-semibold whitespace-nowrap transition-colors disabled:opacity-40",
               variant === "underline"
-                ? cn("-mb-px border-b-2 px-3 py-2.5", active ? "border-brand-600 text-brand-700" : "border-transparent text-slate-500 hover:text-ink")
-                : cn("rounded-lg px-3 py-1.5", active ? "bg-white text-ink shadow-sm" : "text-slate-500 hover:text-ink"),
+                ? cn("-mb-px border-b-2 px-3 py-2.5", active ? "border-brand-600 text-brand-700 dark:text-brand-300" : "border-transparent text-slate-500 hover:text-fg")
+                : cn("rounded-lg px-3 py-1.5", active ? "bg-surface text-fg shadow-sm" : "text-slate-500 hover:text-fg"),
             )}
           >
             {item.label}
@@ -79,7 +79,7 @@ export function Tabs<T extends string>({
               <span
                 className={cn(
                   "rounded-full px-1.5 py-px text-[11px] font-bold",
-                  active ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-500",
+                  active ? "bg-brand-100 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300" : "bg-slate-100 text-slate-500",
                 )}
               >
                 {item.count}

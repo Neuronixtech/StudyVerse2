@@ -115,7 +115,8 @@ export function relativeTime(ms: number, now: number): string {
   const future = diff < 0;
   const fmt = (n: number, unit: string) =>
     future ? `in ${n} ${unit}${n === 1 ? "" : "s"}` : `${n} ${unit}${n === 1 ? "" : "s"} ago`;
-  if (abs < MINUTE) return future ? "in a moment" : "just now";
+  // `now` is floored to the minute when rendering, so very recent events can look slightly "future"
+  if (abs < MINUTE || (future && abs < 2 * MINUTE)) return "just now";
   if (abs < HOUR) return fmt(Math.round(abs / MINUTE), "min");
   if (abs < DAY) return fmt(Math.round(abs / HOUR), "hour");
   if (abs < 30 * DAY) return fmt(Math.round(abs / DAY), "day");

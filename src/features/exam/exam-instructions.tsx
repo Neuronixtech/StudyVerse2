@@ -56,11 +56,11 @@ export function ExamInstructions({ testId }: { testId: string }) {
     <>
       <ExamHeader title={test.title} candidate={candidate} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-3 py-6 sm:px-5 sm:py-8">
-        <Link href={`/tests/${test.id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-ink">
+        <Link href={`/tests/${test.id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg">
           <ArrowLeft className="size-4" /> Back to test details
         </Link>
 
-        <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+        <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
           <div className="border-b border-line bg-slate-50 px-5 py-4 sm:px-8">
             <h1 className="text-xl font-extrabold sm:text-2xl">General instructions</h1>
             <p className="mt-1 text-sm text-slate-500">Please read the instructions carefully before starting the test.</p>
@@ -74,11 +74,11 @@ export function ExamInstructions({ testId }: { testId: string }) {
                 { label: "Questions", value: questionCount(test), icon: <ClipboardList /> },
                 { label: "Maximum marks", value: maxScoreOf(test), icon: <Info /> },
               ].map((s) => (
-                <div key={s.label} className="rounded-xl bg-brand-50/70 p-3.5">
-                  <dt className="flex items-center gap-1.5 text-xs font-semibold text-brand-800 [&_svg]:size-3.5">
+                <div key={s.label} className="rounded-xl bg-brand-50/70 dark:bg-brand-400/10 p-3.5">
+                  <dt className="flex items-center gap-1.5 text-xs font-semibold text-brand-800 dark:text-brand-200 [&_svg]:size-3.5">
                     {s.icon} {s.label}
                   </dt>
-                  <dd className="mt-1 text-base font-extrabold text-ink">{s.value}</dd>
+                  <dd className="mt-1 text-base font-extrabold text-fg">{s.value}</dd>
                 </div>
               ))}
             </dl>
@@ -98,7 +98,7 @@ export function ExamInstructions({ testId }: { testId: string }) {
                   <tbody>
                     {test.sections.map((s) => (
                       <tr key={s.id} className="border-t border-line">
-                        <td className="px-4 py-2.5 font-semibold text-ink">{s.name}</td>
+                        <td className="px-4 py-2.5 font-semibold text-fg">{s.name}</td>
                         <td className="px-4 py-2.5">{s.questions.length}</td>
                         <td className="px-4 py-2.5 text-slate-600">{[...new Set(s.questions.map((q) => QUESTION_TYPE_LABEL[q.type]))].join(", ")}</td>
                         {sectional && <td className="px-4 py-2.5">{s.durationMin} min</td>}
@@ -127,7 +127,7 @@ export function ExamInstructions({ testId }: { testId: string }) {
                 <li>Refreshing or closing the page does not pause the timer. Your saved answers are kept and you can resume.</li>
               </ul>
               {sectional && (
-                <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+                <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 ring-1 ring-amber-200 dark:ring-amber-500/30">
                   <FlaskConical className="mt-px size-3.5 shrink-0" />
                   Prototype default for section-timer expiry. The final policy (including whether completed sections can be revisited) is still to be confirmed.
                 </p>
@@ -143,7 +143,7 @@ export function ExamInstructions({ testId }: { testId: string }) {
                       Single correct
                     </Badge>
                     <p className="mt-2 text-sm">
-                      Correct <strong className="text-emerald-600">+{m.correct}</strong> · Incorrect <strong className="text-red-600">{m.incorrect}</strong> · Unattempted <strong>{m.unattempted}</strong>
+                      Correct <strong className="text-emerald-600 dark:text-emerald-400">+{m.correct}</strong> · Incorrect <strong className="text-red-600 dark:text-red-400">{m.incorrect}</strong> · Unattempted <strong>{m.unattempted}</strong>
                     </p>
                   </div>
                 )}
@@ -161,17 +161,17 @@ export function ExamInstructions({ testId }: { testId: string }) {
                       Numerical
                     </Badge>
                     <p className="mt-2 text-sm leading-relaxed">
-                      Correct <strong className="text-emerald-600">+{m.correct}</strong> · Incorrect <strong className="text-red-600">{m.incorrect}</strong>. Answers within the stated precision are accepted.
+                      Correct <strong className="text-emerald-600 dark:text-emerald-400">+{m.correct}</strong> · Incorrect <strong className="text-red-600 dark:text-red-400">{m.incorrect}</strong>. Answers within the stated precision are accepted.
                     </p>
                   </div>
                 )}
               </div>
               {m.incorrect < 0 ? (
-                <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-red-700">
+                <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
                   <CircleAlert className="size-4" /> This test has negative marking.
                 </p>
               ) : (
-                <p className="mt-3 text-sm font-semibold text-emerald-700">There is no negative marking in this test.</p>
+                <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">There is no negative marking in this test.</p>
               )}
             </section>
 
@@ -241,12 +241,12 @@ export function ExamInstructions({ testId }: { testId: string }) {
                       aria-describedby={touched && !agreed ? "ack-error" : undefined}
                       className="mt-0.5 size-5 shrink-0 accent-brand-600"
                     />
-                    <span className="font-medium text-ink">
+                    <span className="font-medium text-fg">
                       I have read the instructions. I understand the marking scheme and that the test is submitted automatically when time runs out.
                     </span>
                   </label>
                   {touched && !agreed && (
-                    <p id="ack-error" className="mt-2 ml-8 text-xs font-semibold text-red-600">
+                    <p id="ack-error" className="mt-2 ml-8 text-xs font-semibold text-red-600 dark:text-red-400">
                       Please confirm you have read the instructions to begin.
                     </p>
                   )}

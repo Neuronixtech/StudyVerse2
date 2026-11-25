@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
+  Package,
   UserRound,
 } from "lucide-react";
 import { subscriptionLabel } from "@/lib/access";
@@ -24,11 +25,14 @@ import { Avatar, Skeleton } from "../ui/feedback";
 import { Drawer } from "../ui/modal";
 import { Menu, MenuItem } from "../ui/menu";
 import { toast } from "../ui/toast";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { CartButton, NotificationBell } from "@/components/bookstore/header-widgets";
 
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
   { href: "/tests", label: "Tests" },
+  { href: "/books", label: "Bookstore" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -56,21 +60,23 @@ export function SiteHeader() {
       className={cn(
         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
         sub.status === "active"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-          : "border-line-strong bg-white text-slate-700 hover:border-brand-300",
+          ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-500/15"
+          : "border-line-strong bg-surface text-slate-700 hover:border-brand-300",
       )}
     >
-      {sub.status === "active" ? <Crown className="size-4 text-emerald-600" /> : <span className={cn("size-2 rounded-full", toneDot[status.tone])} />}
+      {sub.status === "active" ? <Crown className="size-4 text-emerald-600 dark:text-emerald-400" /> : <span className={cn("size-2 rounded-full", toneDot[status.tone])} />}
       {sub.status === "active" ? `Active · ${sub.daysLeft}d left` : status.label}
     </Link>
   ) : null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-surface/90 backdrop-blur-md">
       <div className="container-page flex h-16 items-center gap-4 lg:h-[72px]">
-        <Logo />
+        {/* Signed-in phones need the room for cart, notifications and account (overflowed at ≤ 389 px) */}
+        <Logo compactOnMobile={!!learner} />
 
-        <nav aria-label="Main" className="ml-6 hidden items-center gap-1 md:flex">
+        {/* Inline nav only from lg: at tablet widths (768–1023px) it doesn't fit beside the account controls. */}
+        <nav aria-label="Main" className="ml-6 hidden items-center gap-1 lg:flex">
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -78,7 +84,7 @@ export function SiteHeader() {
               aria-current={isActive(pathname, item.href) ? "page" : undefined}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                isActive(pathname, item.href) ? "text-brand-700" : "text-slate-600 hover:text-ink",
+                isActive(pathname, item.href) ? "text-brand-700 dark:text-brand-300" : "text-slate-600 hover:text-fg",
               )}
             >
               {item.label}
@@ -90,7 +96,7 @@ export function SiteHeader() {
               aria-current={isActive(pathname, "/subscribe") ? "page" : undefined}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                isActive(pathname, "/subscribe") ? "text-brand-700" : "text-slate-600 hover:text-ink",
+                isActive(pathname, "/subscribe") ? "text-brand-700 dark:text-brand-300" : "text-slate-600 hover:text-fg",
               )}
             >
               Subscribe
@@ -99,11 +105,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle className="hidden sm:grid" />
+          <CartButton />
+          {ready && learner && <NotificationBell />}
           {!ready ? (
             <Skeleton className="h-9 w-40" />
           ) : learner ? (
             <>
-              <div className="hidden lg:block">{planLink}</div>
+              <div className="hidden xl:block">{planLink}</div>
               <Menu
                 label="Account"
                 trigger={(p) => (
@@ -115,7 +124,7 @@ export function SiteHeader() {
                     className="flex items-center gap-2 rounded-full border border-line py-1 pr-2.5 pl-1 transition-colors hover:border-brand-300"
                   >
                     <Avatar name={learner.name} size="sm" />
-                    <span className="hidden max-w-28 truncate text-sm font-semibold text-ink sm:block">{learner.name.split(" ")[0]}</span>
+                    <span className="hidden max-w-28 truncate text-sm font-semibold text-fg sm:block">{learner.name.split(" ")[0]}</span>
                     <ChevronDown className="size-4 text-slate-400" />
                   </button>
                 )}
@@ -123,7 +132,7 @@ export function SiteHeader() {
                 {(close) => (
                   <>
                     <div className="border-b border-line px-2.5 pt-1.5 pb-2.5">
-                      <p className="text-sm font-bold text-ink">{learner.name}</p>
+                      <p className="text-sm font-bold text-fg">{learner.name}</p>
                       <p className="truncate text-xs text-slate-500">{learner.email}</p>
                     </div>
                     <div className="py-1">
@@ -131,6 +140,7 @@ export function SiteHeader() {
                         { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
                         { href: "/dashboard/courses", label: "My courses", icon: <BookOpen /> },
                         { href: "/dashboard/attempts", label: "Attempt history", icon: <ClipboardList /> },
+                        { href: "/dashboard/orders", label: "My book orders", icon: <Package /> },
                         { href: "/dashboard/subscription", label: "Subscription", icon: <CreditCard /> },
                         { href: "/dashboard/profile", label: "Profile & settings", icon: <UserRound /> },
                       ].map((i) => (
@@ -174,7 +184,7 @@ export function SiteHeader() {
           )}
           <button
             type="button"
-            className="grid size-10 place-items-center rounded-lg text-ink hover:bg-slate-100 md:hidden"
+            className="grid size-10 place-items-center rounded-lg text-fg hover:bg-slate-100 lg:hidden"
             aria-label="Open menu"
             onClick={() => setMobileOpen(true)}
           >
@@ -184,6 +194,10 @@ export function SiteHeader() {
       </div>
 
       <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} title="Menu" side="right" width="max-w-xs">
+        <div className="flex items-center justify-between border-b border-line px-5 py-3 sm:hidden">
+          <span className="text-sm font-semibold text-fg">Appearance</span>
+          <ThemeToggle />
+        </div>
         <nav aria-label="Mobile" className="flex flex-col p-3">
           {[...NAV, ...(learner ? [{ href: "/dashboard", label: "Dashboard" }] : []), { href: "/subscribe", label: learner ? "Subscription & plans" : "Subscribe" }].map((item) => (
             <Link
@@ -193,7 +207,7 @@ export function SiteHeader() {
               aria-current={isActive(pathname, item.href) ? "page" : undefined}
               className={cn(
                 "rounded-lg px-3 py-3 text-base font-semibold",
-                isActive(pathname, item.href) ? "bg-brand-50 text-brand-700" : "text-ink hover:bg-slate-50",
+                isActive(pathname, item.href) ? "bg-brand-50 dark:bg-brand-400/10 text-brand-700 dark:text-brand-300" : "text-fg hover:bg-slate-50",
               )}
             >
               {item.label}
@@ -206,7 +220,7 @@ export function SiteHeader() {
               <div className="flex items-center gap-3">
                 <Avatar name={learner.name} />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-ink">{learner.name}</p>
+                  <p className="truncate text-sm font-bold text-fg">{learner.name}</p>
                   <p className="text-xs text-slate-500">{status.label}</p>
                 </div>
               </div>
@@ -216,7 +230,7 @@ export function SiteHeader() {
                   setMobileOpen(false);
                   logout();
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2.5 text-sm font-semibold text-red-600"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 dark:border-red-500/30 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400"
               >
                 <LogOut className="size-4" /> Log out
               </button>

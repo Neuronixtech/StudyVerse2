@@ -13,6 +13,7 @@ import { useSession } from "@/lib/hooks";
 import { ADMIN_PERSONAS } from "@/lib/mock/seed";
 import { loginAdmin } from "@/lib/store";
 import { isValidEmail } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function AdminLogin() {
   const router = useRouter();
@@ -55,11 +56,14 @@ export function AdminLogin() {
       <div className="relative w-full max-w-md">
         <div className="mb-6 flex items-center justify-between">
           <Logo light suffix="Admin" />
-          <Link href="/" className="flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white">
-            <ArrowLeft className="size-4" /> Site
-          </Link>
+          <div className="flex items-center gap-1">
+            <ThemeToggle tone="onDark" />
+            <Link href="/" className="flex items-center gap-1.5 text-sm font-semibold text-white/70 hover:text-white">
+              <ArrowLeft className="size-4" /> Site
+            </Link>
+          </div>
         </div>
-        <div className="rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="rounded-2xl bg-surface p-6 shadow-2xl sm:p-8">
           <span className="grid size-12 place-items-center rounded-xl bg-ink text-white">
             <ShieldCheck className="size-6" />
           </span>
@@ -77,8 +81,8 @@ export function AdminLogin() {
               Sign in
             </Button>
           </form>
-          <div className="mt-6 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-4">
-            <p className="flex items-center gap-2 text-xs font-bold tracking-wide text-amber-900 uppercase">
+          <div className="mt-6 rounded-xl border border-dashed border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/10 p-4">
+            <p className="flex items-center gap-2 text-xs font-bold tracking-wide text-amber-900 dark:text-amber-100 uppercase">
               <FlaskConical className="size-3.5" /> Demo admin accounts
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -86,8 +90,8 @@ export function AdminLogin() {
                 const a = state.admins.find((x) => x.id === p.id);
                 if (!a) return null;
                 return (
-                  <button key={p.id} type="button" onClick={() => enter(a.id)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-left hover:border-brand-400">
-                    <span className="block text-sm font-semibold text-ink">{a.name}</span>
+                  <button key={p.id} type="button" onClick={() => enter(a.id)} className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-surface px-3 py-2 text-left hover:border-brand-400">
+                    <span className="block text-sm font-semibold text-fg">{a.name}</span>
                     <span className="block text-xs text-slate-500">{p.label}</span>
                   </button>
                 );

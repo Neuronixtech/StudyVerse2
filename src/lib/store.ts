@@ -113,6 +113,8 @@ function subscribeClock(listener: () => void) {
     if (clockListeners.size === 0 && clockTimer) {
       clearInterval(clockTimer);
       clockTimer = undefined;
+      // Forget the cached time so the next subscriber starts from the real clock, not a stale tick.
+      clock = 0;
     }
   };
 }
@@ -136,8 +138,23 @@ export function useNow(granularityMs = 60_000): number {
 
 /* --------------------------- Session --------------------------- */
 
+/** Moves the visitor's cart into the learner's cart so checkout can continue after login */
+function mergeGuestCart(s: AppState, learnerId: string): AppState {
+  const guest = s.carts?.guest ?? [];
+  if (!guest.length) return s;
+  const mine = [...(s.carts[learnerId] ?? [])];
+  for (const g of guest) {
+    const existing = mine.find((m) => m.bookId === g.bookId);
+    if (existing) existing.qty = Math.max(existing.qty, g.qty);
+    else mine.push(g);
+  }
+  const carts = { ...s.carts, [learnerId]: mine.map((m) => ({ ...m })) };
+  delete carts.guest;
+  return { ...s, carts };
+}
+
 export function loginLearner(learnerId: string) {
-  setState((s) => ({ ...s, session: { ...s.session, learnerId } }));
+  setState((s) => mergeGuestCart({ ...s, session: { ...s.session, learnerId } }, learnerId));
 }
 
 export function logoutLearner() {
@@ -158,11 +175,16 @@ export function logoutAdmin() {
 
 export function signupLearner(data: Omit<Learner, "id" | "joinedAt">): string {
   const id = uid("l");
-  setState((s) => ({
-    ...s,
-    learners: [{ ...data, id, joinedAt: Date.now() }, ...s.learners],
-    session: { ...s.session, learnerId: id },
-  }));
+  setState((s) =>
+    mergeGuestCart(
+      {
+        ...s,
+        learners: [{ ...data, id, joinedAt: Date.now() }, ...s.learners],
+        session: { ...s.session, learnerId: id },
+      },
+      id,
+    ),
+  );
   return id;
 }
 
@@ -181,9 +203,9 @@ export function resetPrototype() {
   emit();
 }
 
-function audit(s: AppState, actorId: string | null, text: string): AppState {
+export function audit(s: AppState, actorId: string | null, text: string, ref?: string): AppState {
   const actor = s.admins.find((a) => a.id === actorId)?.name ?? "System";
-  return { ...s, audit: [{ id: uid("au"), at: Date.now(), actor, text }, ...s.audit].slice(0, 60) };
+  return { ...s, audit: [{ id: uid("au"), at: Date.now(), actor, text, ref }, ...s.audit].slice(0, 200) };
 }
 
 /* --------------------------- Learning --------------------------- */
@@ -519,7 +541,7 @@ export function deleteTest(testId: string, adminId: string) {
 export function inviteAdmin(data: { name: string; email: string; permissions: Permission[] }, ownerId: string): string {
   const id = uid("a");
   setState((s) => {
-    const admin: Admin = { id, name: data.name, email: data.email, role: "staff", permissions: data.permissions, status: "invited", invitedAt: Date.now() };
+    const admin: Admin = { id, name: data.name, email: data.email, role: "staff", permissions: data.permissions, status: "invited", invitedAt: Date.now(), bookPermissions: [] };
     return audit({ ...s, admins: [...s.admins, admin] }, ownerId, `Invited ${data.name} as staff admin`);
   });
   return id;

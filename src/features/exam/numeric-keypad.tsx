@@ -31,7 +31,7 @@ export function NumericInput({
 
   return (
     <div className="max-w-xs">
-      <label htmlFor={id} className="text-sm font-semibold text-ink">
+      <label htmlFor={id} className="text-sm font-semibold text-fg">
         Your answer
       </label>
       <input
@@ -47,7 +47,7 @@ export function NumericInput({
         aria-describedby={`${id}-hint${error ? ` ${id}-err` : ""}`}
         placeholder="Enter a number"
         className={cn(
-          "mt-1.5 h-12 w-full rounded-xl border-2 bg-white px-4 font-mono text-lg font-bold text-ink outline-none focus:border-brand-500 focus:shadow-ring",
+          "mt-1.5 h-12 w-full rounded-xl border-2 bg-surface px-4 font-mono text-lg font-bold text-fg outline-none focus:border-brand-500 focus:shadow-ring",
           error ? "border-red-400" : "border-line-strong",
         )}
       />
@@ -56,7 +56,7 @@ export function NumericInput({
         {!allowNegative && " Negative values are not expected."}
       </p>
       {error && (
-        <p id={`${id}-err`} className="mt-1 text-xs font-semibold text-red-600">
+        <p id={`${id}-err`} className="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
           {error}
         </p>
       )}
@@ -67,7 +67,7 @@ export function NumericInput({
             type="button"
             onClick={() => press(k)}
             disabled={k === "-" && !allowNegative}
-            className="h-11 rounded-lg border border-line-strong bg-white font-mono text-base font-bold text-ink shadow-xs transition-colors hover:bg-slate-50 active:bg-slate-100 disabled:opacity-35"
+            className="h-11 rounded-lg border border-line-strong bg-surface font-mono text-base font-bold text-fg shadow-xs transition-colors hover:bg-slate-50 active:bg-slate-100 disabled:opacity-35"
             aria-label={k === "-" ? "Toggle minus sign" : k === "." ? "Decimal point" : k}
           >
             {k === "-" ? "±" : k}
