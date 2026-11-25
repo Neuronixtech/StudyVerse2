@@ -1,6 +1,7 @@
 import { Module, type DynamicModule } from "@nestjs/common";
 import type { AppConfig } from "./config/app-config.js";
 import { AppConfigModule } from "./config/app-config.module.js";
+import { LoggingModule } from "./common/logging/logging.module.js";
 
 @Module({})
 export class AppModule {
@@ -8,7 +9,7 @@ export class AppModule {
   static forRoot(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [AppConfigModule.forRoot(config)],
+      imports: [AppConfigModule.forRoot(config), LoggingModule.forRoot()],
     };
   }
 }

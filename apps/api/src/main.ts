@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module.js";
 import { configureApp } from "./app.setup.js";
 import { ConfigValidationError, loadConfig, type AppConfig } from "./config/app-config.js";
@@ -32,7 +33,11 @@ function readConfig(): AppConfig {
 async function bootstrap(): Promise<void> {
   loadLocalEnvFile();
   const config = readConfig();
-  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config));
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config), {
+    // Hold startup logs until the structured logger is ready.
+    bufferLogs: true,
+  });
+  app.useLogger(app.get(Logger));
   configureApp(app);
   // Close the HTTP server and database pool cleanly on SIGTERM/SIGINT (container stop).
   app.enableShutdownHooks();
