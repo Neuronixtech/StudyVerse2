@@ -43,7 +43,7 @@ export function BookCard({ book }: { book: Book }) {
         <div className="mt-2">
           <StockBadge state={st} available={available} size="xs" />
         </div>
-        <div className="relative z-10 mt-auto pt-3">
+        <div className="@container relative z-10 mt-auto pt-3">
           <Button
             block
             size="sm"
@@ -54,7 +54,19 @@ export function BookCard({ book }: { book: Book }) {
               toast({ title: "Added to cart", description: book.title, tone: "success" });
             }}
           >
-            <ShoppingCart /> {st === "out" ? "Out of stock" : inCart ? `In cart (${inCart}) · Add another` : "Add to cart"}
+            <ShoppingCart />{" "}
+            {st === "out" ? (
+              "Out of stock"
+            ) : inCart ? (
+              <span>
+                In cart ({inCart}){" "}
+                {/* The full label needs ~13rem; on narrower cards (phones, 3-column tablet grid) it spilled out of
+                    the button and the card. There it stays in the accessible name but isn't drawn. */}
+                <span className="sr-only @min-[14rem]:not-sr-only">· Add another</span>
+              </span>
+            ) : (
+              "Add to cart"
+            )}
             {/* Name starts with the visible label so voice-control users can say what they see (WCAG 2.5.3) */}
             <span className="sr-only">: {book.title}</span>
           </Button>
