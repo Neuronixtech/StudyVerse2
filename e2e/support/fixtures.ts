@@ -95,10 +95,26 @@ export async function switchSession(page: Page, session: Session) {
   );
 }
 
-/** Asserts the page has no page-level horizontal scroll. */
+/**
+ * Asserts the page has no page-level horizontal scroll. On failure the message names the URL and
+ * the elements that stick out without a scrolling/clipping ancestor (intentional scroll regions,
+ * like wide tables inside overflow-x-auto, don't count).
+ */
 export async function expectNoHorizontalOverflow(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow, "page-level horizontal overflow in px").toBeLessThanOrEqual(0);
+  const { overflow, offenders } = await page.evaluate(() => {
+    const vw = document.documentElement.clientWidth;
+    const contained = (el: Element | null) => {
+      for (let a = el?.parentElement; a && a !== document.body; a = a.parentElement) if (getComputedStyle(a).overflowX !== "visible") return true;
+      return false;
+    };
+    const sticksOut = (el: Element) => el.getBoundingClientRect().right > vw + 0.5 && !contained(el) && getComputedStyle(el).position !== "fixed";
+    const found = Array.from(document.querySelectorAll("body *"))
+      .filter((el) => sticksOut(el) && !(el.parentElement && el.parentElement !== document.body && sticksOut(el.parentElement)))
+      .slice(0, 3)
+      .map((el) => `<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 80)}"> right=${Math.round(el.getBoundingClientRect().right)} "${(el.textContent ?? "").trim().slice(0, 40)}"`);
+    return { overflow: document.documentElement.scrollWidth - vw, offenders: found };
+  });
+  expect(overflow, `page-level horizontal overflow in px on ${new URL(page.url()).pathname} at ${page.viewportSize()?.width}px — ${offenders.join("; ")}`).toBeLessThanOrEqual(0);
 }
 
 export { STATE_VERSION };

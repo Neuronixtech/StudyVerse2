@@ -42,6 +42,12 @@ beforeEach(() => {
   vi.useFakeTimers({ now: FIXED_NOW });
 });
 
+/** Moves the clock straight to `at` (no timers fire on the way), then lets one tick render it. */
+async function jumpTo(at: number) {
+  vi.setSystemTime(at - SECOND);
+  await advance(SECOND);
+}
+
 afterEach(async () => {
   // Unmount, then let pending toast timers fire so no toast leaks into the next test.
   cleanup();
@@ -269,7 +275,13 @@ describe("ExamRunner — timers", () => {
 
   it("EXAM-021 — reaching zero auto-submits and opens the result", async () => {
     startExam();
-    await advance(30 * MINUTE + SECOND);
+    // Jump to 3 s before the deadline (as when a throttled background tab wakes up), then let real
+    // one-second ticks cross zero. Ticking all 30 minutes would re-render 1,800 times and is slow on CI.
+    await jumpTo(FIXED_NOW + 30 * MINUTE - 3 * SECOND);
+    expect(timer()).toHaveAccessibleName("Time left 00:00:03");
+    expect(router.replace).not.toHaveBeenCalled();
+
+    await advance(4 * SECOND);
 
     expect(router.replace).toHaveBeenCalledTimes(1);
     const [url] = router.replace.mock.calls[0];

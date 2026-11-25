@@ -4,6 +4,7 @@ import { expect, expectNoHorizontalOverflow, test } from "../support/fixtures";
 const DESKTOP = { width: 1440, height: 900 };
 const TABLET = { width: 768, height: 1024 };
 const MOBILE = { width: 390, height: 844 };
+const SMALL_PHONE = { width: 360, height: 780 };
 
 async function startDemo(page: Page) {
   await page.goto("/exam/t-demo");
@@ -140,7 +141,7 @@ test("RESP-007 — the visitor header fits at tablet widths (regression: overflo
 test.describe("RESP-007 — no page-level horizontal overflow on core routes", () => {
   test.use({ session: { learner: "learnerActive", admin: "owner" } });
 
-  for (const [name, viewport] of Object.entries({ desktop: DESKTOP, tablet: TABLET, mobile: MOBILE })) {
+  for (const [name, viewport] of Object.entries({ desktop: DESKTOP, tablet: TABLET, mobile: MOBILE, "small phone": SMALL_PHONE })) {
     test(`${name} ${viewport.width}×${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.goto("/books/calculus-workbook");
@@ -164,3 +165,37 @@ test.describe("RESP-007 — no page-level horizontal overflow on core routes", (
     });
   }
 });
+
+/**
+ * WCAG 2.1 AA 1.4.10 Reflow: content must work at 320 CSS px without page-level horizontal scrolling.
+ * Wide data tables may scroll inside their own container; the page itself may not.
+ */
+const ALL_ROUTES = [
+  "/", "/courses", "/courses/jee-physics-mechanics", "/learn/jee-physics-mechanics/c-mechanics-m1-l2", "/tests", "/tests/t-demo",
+  "/exam/t-demo", "/subscribe", "/login", "/signup", "/forgot-password", "/reset-password", "/books", "/books/catalog",
+  "/books/calculus-workbook", "/books/cart", "/books/checkout", "/books/orders/o-10241/payment", "/dashboard", "/dashboard/courses",
+  "/dashboard/attempts", "/dashboard/subscription", "/dashboard/profile", "/dashboard/orders", "/dashboard/orders/o-10241",
+  "/dashboard/addresses", "/results/at-001", "/results/at-001/review", "/admin/login", "/admin", "/admin/courses", "/admin/courses/c-mechanics",
+  "/admin/tests", "/admin/tests/t-demo", "/admin/learners", "/admin/learners/l-rohan", "/admin/requests", "/admin/subscriptions",
+  "/admin/staff", "/admin/settings", "/admin/bookstore", "/admin/bookstore/books", "/admin/bookstore/books/b-calculus-workbook",
+  "/admin/bookstore/orders", "/admin/bookstore/orders/o-10238", "/admin/bookstore/dispatch", "/admin/bookstore/returns",
+  "/admin/bookstore/reports", "/admin/bookstore/settings",
+];
+
+for (const [who, session] of [["visitor", {}], ["signed-in learner + owner", { learner: "learnerActive", admin: "owner" }]] as const) {
+  test.describe(`RESP-007 — reflow at 320 px, ${who}`, () => {
+    test.use({ session, viewport: { width: 320, height: 640 } });
+
+    test(`RESP-007 — WCAG 1.4.10 reflow: no page-level horizontal scroll at 320 px on every route (${who})`, async ({ page }) => {
+      test.setTimeout(120_000);
+      await page.goto("/books/calculus-workbook");
+      await page.getByRole("button", { name: "Add to cart", exact: true }).click();
+      for (const url of ALL_ROUTES) {
+        await page.goto(url);
+        await expect(page.getByRole("heading").first()).toBeVisible();
+        await expectNoHorizontalOverflow(page);
+      }
+    });
+  });
+}
+

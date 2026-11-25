@@ -35,9 +35,15 @@ Every test runs at a fixed instant (20 Nov 2026, 10:00 IST) against freshly gene
 
 **CI.** `.github/workflows/frontend-tests.yml` runs on every PR and push to `main`/`develop`: lint, type-check, unit/component tests, then Chromium E2E. Nightly it runs Chromium, Firefox and WebKit. In CI a failing test fails the job. A test that only passes on retry also fails it (`failOnFlakyTests`), so a retry can't hide a regression. A negative check confirmed this locally: reverting one contrast token made the CI-mode run exit with code 1, failing both the attempt and the retry.
 
-**Results in §5** come from a clean checkout of commit `9a04f35`: a separate git worktree with a fresh `npm ci` and no `.next` build or generated types, so the same starting point as a CI runner. That run found one CI-only problem, now fixed: `tsc` needs Next's generated route types, which a fresh checkout doesn't have, so `typecheck` now runs `next typegen` first, as the Next 16 docs recommend.
+**Results in §5** come from a clean checkout of commit `9a04f35` on macOS (fresh `npm ci`, no `.next`). They predate the CI fixes below; the pull request's CI run is the verification for the current code.
 
-**CI run reference: none yet.** The suite is on branch `test/frontend-test-suite`. The workflow runs on pull requests and on pushes to `main`/`develop`, so the first run starts when a pull request from this branch is opened. Record its URL here.
+**CI history**
+
+1. Before the first push, a clean checkout of the commit found that `tsc` needs Next's generated route types, which a fresh checkout lacks. `typecheck` now runs `next typegen` first, as the Next 16 docs recommend.
+2. The first CI run on the pull request failed on two problems that didn't show on macOS:
+   - **EXAM-021 timed out.** The test advanced fake time 30 minutes tick by tick: 1,801 re-renders, 3.1 s locally and over the 5 s limit on the 2-core runner. It now jumps to 3 s before the deadline and lets real ticks cross zero (10 ms). The auto-submit path is unchanged.
+   - **RESP-007 found the signed-in header 5 px too wide at 390 px** under Linux font metrics. That was a real bug: the header overflowed on any OS below about 389 px. It is fixed (§9). The responsive suite now also checks 360 px, plus WCAG 1.4.10 reflow at 320 px on every route, and overflow failures name the offending elements.
+3. Before pushing, the fixes passed lint, typecheck, the unit/component suite and the full Chromium E2E suite locally. **Record the URL of the first passing CI run here.**
 
 ## 3. Fixtures
 
@@ -339,6 +345,8 @@ These tests cover routes and flows that have no case ID of their own in the plan
 | VID-008 | The player had no failure or retry state. | The player uses the existing `useSimulatedLoad` hook (the prototype toolbar's "Slow network" / "Request errors" switches): loading skeleton, error with Try again, then recovery. |
 | BOOK-014 | Order timeline: events logged in the same millisecond ("Payment confirmed", "Moved to Processing") were shown in the wrong order. | Newest-first sort now breaks ties by insertion order (`components/bookstore/order-ui.tsx`). |
 | RESP-002, RESP-007 | At tablet widths the header overflowed the page (145 px at 768 px for visitors). | Inline nav from `lg`; menu button below. |
+| RESP-007 (first CI run) | On phones the signed-in learner's header (cart, notifications, account, menu) didn't fit below about 389 px; CI's Linux fonts made it fail even at 390. | Below `sm`, signed-in learners see the logo mark without the wordmark, which stays available to screen readers (`brand.tsx`, `site-header.tsx`). |
+| RESP-007 (WCAG 1.4.10 reflow, 320 px) | Order rows on `/dashboard/orders`, the admin account button, and the owner's permission badge and staff actions on `/admin/staff` pushed the page sideways at 320 px. | Order rows and staff actions wrap; the decorative chevron is hidden on phones; the long owner badge may wrap. |
 | VID-009 | On phones the big Play button couldn't be tapped (the controls gradient caught the tap). | Gradient passes taps through. |
 | A11Y-001/004/005/006, COURSE-010 | Dialogs had no accessible name; palette buttons read raw state ids; lesson status was icon-only; names didn't contain visible labels (WCAG 2.5.3); invalid `<dl>` markup; unlinked error messages; identical "Correct" labels in the question editor. | See the components named in each test. |
 | Test determinism | `useNow` kept a stale time after its last subscriber unmounted. | Cache reset when the last subscriber leaves. |
@@ -353,7 +361,7 @@ These cannot be automated in this repository today. They are listed so they don'
 | Manual screen-reader pass (VoiceOver, TalkBack/NVDA) | axe and keyboard tests catch structure, not the listening experience | One pass of the exam, checkout and subscription flows |
 | A11Y-003 manual part: focus visibility over overlays | The automated test checks that an outline is drawn; it can't judge whether it's clearly visible against every background | A visual keyboard pass over dialogs, drawers, the palette and the dark theme |
 | A11Y-007 manual part: text over gradients and images | axe can't compute contrast where text sits on gradients or images (hero banners, the player, book covers), so it reports those as "needs review" rather than pass/fail | A visual check of those surfaces in both themes |
-| First CI run reference | The branch is pushed, but the workflow runs on pull requests and on pushes to `main`/`develop` | Open the pull request from `test/frontend-test-suite` into `develop`; record the run URL in §2 |
+| Passing CI run reference | The first PR run failed on two Linux-only issues (§2); the fixes are pushed | Record the URL of the first passing run in §2 |
 | Backend, API and security behaviour (plan §4, §17) | Out of scope for the frontend prototype by design | Separate backend test plan |
 
 Minor follow-ups (no case ID): in the lesson editor and the refund dialog, validation messages aren't programmatically linked to their fields. The empty course catalog says "No courses match your filters" even when nothing is filtered.

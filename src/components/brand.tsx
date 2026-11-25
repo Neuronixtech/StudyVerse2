@@ -15,11 +15,12 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ href = "/", light, className, suffix }: { href?: string; light?: boolean; className?: string; suffix?: string }) {
+/** `compactOnMobile`: below `sm`, show only the mark (the wordmark stays available to screen readers). */
+export function Logo({ href = "/", light, className, suffix, compactOnMobile }: { href?: string; light?: boolean; className?: string; suffix?: string; compactOnMobile?: boolean }) {
   return (
     <Link href={href} className={cn("inline-flex items-center gap-2.5 rounded-lg", className)}>
       <LogoMark />
-      <span className={cn("text-lg font-extrabold tracking-tight", light ? "text-white" : "text-fg")}>
+      <span className={cn("text-lg font-extrabold tracking-tight", light ? "text-white" : "text-fg", compactOnMobile && "max-sm:sr-only")}>
         Study<span className={light ? "text-brand-200" : "text-brand-600 dark:text-brand-400"}>Verse</span>
       </span>
       {suffix && (

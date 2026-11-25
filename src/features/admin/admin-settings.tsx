@@ -80,7 +80,8 @@ export function StaffPage() {
               </div>
               <div className="flex flex-wrap gap-1.5 lg:w-[360px]">
                 {a.role === "owner" ? (
-                  <Badge tone="violet">Full access, including admins & platform settings</Badge>
+                  // A sentence, not a label: allow wrapping (Badge is nowrap by default) so it fits at 320 px
+                  <Badge tone="violet" className="whitespace-normal!">Full access, including admins & platform settings</Badge>
                 ) : a.permissions.length ? (
                   a.permissions.map((p) => (
                     <Badge key={p} tone="slate" size="xs">
@@ -92,7 +93,7 @@ export function StaffPage() {
                 )}
               </div>
               {a.role !== "owner" && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {a.status === "invited" && (
                     <Button variant="ghost" size="sm" onClick={() => toast({ title: "Invitation re-sent", description: a.email, simulated: true })}>
                       <Send /> Resend

@@ -245,7 +245,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <Badge tone={admin.role === "owner" ? "violet" : "sky"} size="xs">
                   {admin.role === "owner" ? "Owner" : "Staff"}
                 </Badge>
-                <ChevronDown className="size-4 text-slate-400" />
+                <ChevronDown className="hidden size-4 text-slate-400 sm:block" />
               </button>
             )}
           >
