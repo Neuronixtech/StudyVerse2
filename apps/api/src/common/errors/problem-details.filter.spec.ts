@@ -9,14 +9,12 @@ import {
   ServiceUnavailableException,
   type INestApplication,
 } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import { Type } from "class-transformer";
 import { IsEmail, IsInt, IsString, Min, ValidateNested } from "class-validator";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { configureApp } from "../../app.setup.js";
-import { loadConfig } from "../../config/app-config.js";
 import { AppConfigModule } from "../../config/app-config.module.js";
+import { createTestApp, testConfig } from "../../testing/create-test-app.js";
 import { LoggingModule } from "../logging/logging.module.js";
 import type { ProblemDetails } from "./problem-details.js";
 
@@ -72,18 +70,14 @@ describe("ProblemDetailsFilter", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const config = loadConfig({
-      NODE_ENV: "test",
-      LOG_LEVEL: "silent",
-      DATABASE_URL: "postgresql://u:p@127.0.0.1:1/x",
-    });
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppConfigModule.forRoot(config), LoggingModule.forRoot()],
-      controllers: [ErrorsController],
-    }).compile();
-    app = moduleRef.createNestApplication();
-    configureApp(app);
-    await app.init();
+    const config = testConfig();
+    app = await createTestApp(
+      {
+        imports: [AppConfigModule.forRoot(config), LoggingModule.forRoot()],
+        controllers: [ErrorsController],
+      },
+      config,
+    );
   });
 
   afterAll(async () => {

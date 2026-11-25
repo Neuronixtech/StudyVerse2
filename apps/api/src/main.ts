@@ -5,7 +5,7 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module.js";
-import { configureApp } from "./app.setup.js";
+import { APP_CREATE_OPTIONS, configureApp } from "./app.setup.js";
 import { ConfigValidationError, loadConfig, type AppConfig } from "./config/app-config.js";
 
 /**
@@ -34,11 +34,12 @@ async function bootstrap(): Promise<void> {
   loadLocalEnvFile();
   const config = readConfig();
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config), {
+    ...APP_CREATE_OPTIONS,
     // Hold startup logs until the structured logger is ready.
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger));
-  configureApp(app);
+  configureApp(app, config);
   // Close the HTTP server and database pool cleanly on SIGTERM/SIGINT (container stop).
   app.enableShutdownHooks();
   await app.listen(config.http.port, config.http.host);

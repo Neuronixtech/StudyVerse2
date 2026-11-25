@@ -1,11 +1,9 @@
 import { Writable } from "node:stream";
 import { Controller, Get, type INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { configureApp } from "../../app.setup.js";
-import { loadConfig } from "../../config/app-config.js";
 import { AppConfigModule } from "../../config/app-config.module.js";
+import { createTestApp, testConfig } from "../../testing/create-test-app.js";
 import { LoggingModule } from "./logging.module.js";
 
 @Controller("probe")
@@ -41,18 +39,14 @@ describe("LoggingModule", () => {
   });
 
   beforeAll(async () => {
-    const config = loadConfig({
-      NODE_ENV: "test",
-      LOG_LEVEL: "info",
-      DATABASE_URL: "postgresql://u:p@127.0.0.1:1/x",
-    });
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppConfigModule.forRoot(config), LoggingModule.forRoot({ destination })],
-      controllers: [ProbeController, FakeHealthController],
-    }).compile();
-    app = moduleRef.createNestApplication();
-    configureApp(app);
-    await app.init();
+    const config = testConfig({ LOG_LEVEL: "info" });
+    app = await createTestApp(
+      {
+        imports: [AppConfigModule.forRoot(config), LoggingModule.forRoot({ destination })],
+        controllers: [ProbeController, FakeHealthController],
+      },
+      config,
+    );
   });
 
   beforeEach(() => {
