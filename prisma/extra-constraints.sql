@@ -193,3 +193,83 @@ ALTER TABLE "idempotency_records"
   CHECK ("response_status" IS NULL OR "response_status" BETWEEN 100 AND 599),
   ADD CONSTRAINT "idempotency_records_valid_times_check"
   CHECK ("expires_at" > "created_at");
+
+-- -----------------------------------------------------------------------------
+-- Triggers: invariants that span rows or state transitions. Prisma doesn't manage
+-- functions or triggers, so they live here with the other hand-written SQL.
+-- -----------------------------------------------------------------------------
+
+-- Published test versions are immutable (Backend_architecture.md §7.4, §16.4). A
+-- DRAFT version is the editable configuration; publishing freezes it, and editing a
+-- published test means creating a new DRAFT version. After publication only these
+-- may change: status PUBLISHED -> SUPERSEDED, answer_review_release_at (the
+-- release control, recorded in result_release_events) and updated_at. A published
+-- or superseded version can't be deleted.
+CREATE FUNCTION "guard_published_test_version"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  mutable_columns text[] := ARRAY['status', 'answer_review_release_at', 'updated_at'];
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD."status" <> 'DRAFT' THEN
+      RAISE EXCEPTION 'test version % is %, so it cannot be deleted', OLD."id", OLD."status"
+        USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    RETURN OLD;
+  END IF;
+
+  IF OLD."status" <> 'DRAFT' AND (
+       (NEW."status" IS DISTINCT FROM OLD."status"
+         AND NOT (OLD."status" = 'PUBLISHED' AND NEW."status" = 'SUPERSEDED'))
+       OR (to_jsonb(NEW) - mutable_columns) IS DISTINCT FROM (to_jsonb(OLD) - mutable_columns)
+     ) THEN
+    RAISE EXCEPTION 'test version % is %, so its configuration cannot change; create a new draft version', OLD."id", OLD."status"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "test_versions_immutable_after_publish"
+  BEFORE UPDATE OR DELETE ON "test_versions"
+  FOR EACH ROW EXECUTE FUNCTION "guard_published_test_version"();
+
+-- Sections and questions can only be added, changed or removed while their version
+-- is a DRAFT. When the parent row no longer exists, the change is the cascade from
+-- deleting a draft version, which is allowed.
+CREATE FUNCTION "guard_published_test_version_content"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  version_ids uuid[];
+  frozen_id uuid;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    version_ids := ARRAY[NEW."test_version_id"];
+  ELSIF TG_OP = 'DELETE' THEN
+    version_ids := ARRAY[OLD."test_version_id"];
+  ELSE
+    version_ids := ARRAY[OLD."test_version_id", NEW."test_version_id"];
+  END IF;
+
+  SELECT "id" INTO frozen_id FROM "test_versions"
+    WHERE "id" = ANY (version_ids) AND "status" <> 'DRAFT'
+    LIMIT 1;
+  IF frozen_id IS NOT NULL THEN
+    RAISE EXCEPTION '% of test version % cannot change: the version is no longer a draft', TG_TABLE_NAME, frozen_id
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "test_version_sections_frozen_after_publish"
+  BEFORE INSERT OR UPDATE OR DELETE ON "test_version_sections"
+  FOR EACH ROW EXECUTE FUNCTION "guard_published_test_version_content"();
+
+CREATE TRIGGER "test_version_questions_frozen_after_publish"
+  BEFORE INSERT OR UPDATE OR DELETE ON "test_version_questions"
+  FOR EACH ROW EXECUTE FUNCTION "guard_published_test_version_content"();
