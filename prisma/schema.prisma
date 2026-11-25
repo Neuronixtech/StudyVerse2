@@ -282,6 +282,40 @@ enum AuditActorType {
   SYSTEM
 }
 
+// Values for MFA events are added when the MFA design is agreed (deferred decision 2).
+enum AuthEventType {
+  ACCOUNT_REGISTERED
+  LOGIN_SUCCEEDED
+  LOGIN_FAILED
+  LOGOUT
+  SESSION_REVOKED
+  ALL_SESSIONS_REVOKED
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  EMAIL_VERIFICATION_SENT
+  EMAIL_VERIFIED
+  OAUTH_ACCOUNT_LINKED
+  OAUTH_ACCOUNT_UNLINKED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_REACTIVATED
+}
+
+enum AuthMethod {
+  PASSWORD
+  GOOGLE
+}
+
+enum ResultReleaseAction {
+  RELEASED
+  WITHHELD
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
 // -----------------------------------------------------------------------------
 // IDENTITY, AUTHENTICATION AND AUTHORIZATION
 // -----------------------------------------------------------------------------
@@ -305,10 +339,10 @@ model User {
   sessions                     UserSession[]
   roles                        UserRole[]
   permissionOverrides          UserPermission[]
-  invitationsSent              AdminInvitation[]     @relation("InvitationInviter")
-  invitationsAccepted          AdminInvitation[]     @relation("InvitationAcceptor")
-  subscriptionRequests         SubscriptionRequest[] @relation("SubscriptionRequester")
-  subscriptionRequestsReviewed SubscriptionRequest[] @relation("SubscriptionRequestReviewer")
+  invitationsSent              AdminInvitation[]          @relation("InvitationInviter")
+  invitationsAccepted          AdminInvitation[]          @relation("InvitationAcceptor")
+  subscriptionRequests         SubscriptionRequest[]      @relation("SubscriptionRequester")
+  subscriptionRequestsReviewed SubscriptionRequest[]      @relation("SubscriptionRequestReviewer")
   subscriptionPeriods          SubscriptionPeriod[]
   lessonProgress               LessonProgress[]
   testAttempts                 TestAttempt[]
@@ -317,16 +351,19 @@ model User {
   carts                        Cart[]
   orders                       Order[]
   notifications                Notification[]
-  auditEvents                  AuditLog[]            @relation("AuditActor")
-  createdCourses               Course[]              @relation("CourseCreator")
-  createdVideoAssets           VideoAsset[]          @relation("VideoAssetCreator")
-  reviewedPaymentSubmissions   PaymentSubmission[]   @relation("PaymentReviewer")
+  auditEvents                  AuditLog[]                 @relation("AuditActor")
+  createdCourses               Course[]                   @relation("CourseCreator")
+  createdVideoAssets           VideoAsset[]               @relation("VideoAssetCreator")
+  reviewedPaymentSubmissions   PaymentSubmission[]        @relation("PaymentReviewer")
   inventoryMovements           InventoryMovement[]
-  cancellationRequests         CancellationRequest[] @relation("CancellationRequester")
-  reviewedCancellations        CancellationRequest[] @relation("CancellationReviewer")
-  returnRequests               ReturnRequest[]       @relation("ReturnRequester")
-  reviewedReturns              ReturnRequest[]       @relation("ReturnReviewer")
-  createdRefunds               RefundRecord[]        @relation("RefundRecorder")
+  cancellationRequests         CancellationRequest[]      @relation("CancellationRequester")
+  reviewedCancellations        CancellationRequest[]      @relation("CancellationReviewer")
+  returnRequests               ReturnRequest[]            @relation("ReturnRequester")
+  reviewedReturns              ReturnRequest[]            @relation("ReturnReviewer")
+  createdRefunds               RefundRecord[]             @relation("RefundRecorder")
+  authEvents                   AuthEvent[]
+  subscriptionRequestEvents    SubscriptionRequestEvent[] @relation("SubscriptionRequestEventActor")
+  resultReleaseEvents          ResultReleaseEvent[]       @relation("ResultReleaseActor")
 
   @@index([status, createdAt])
   @@map("users")
@@ -390,11 +427,42 @@ model UserSession {
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
   revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authEvents AuthEvent[]
 
   @@index([userId, expiresAt])
   @@index([revokedAt, expiresAt])
   @@map("user_sessions")
+}
+
+// Security timeline for sign-in, sessions and credentials (Backend_architecture.md
+// §7.3, §15.1). Append-only. Never stores passwords, tokens, session IDs, raw email
+// addresses or raw IP addresses. userId is null when the submitted email matches
+// no account; emailHash (a keyed hash of the normalized email) still lets repeated
+// failures against one address be detected. Admin permission and role changes are
+// recorded in audit_logs, not here.
+model AuthEvent {
+  id            String        @id @default(uuid()) @db.Uuid
+  type          AuthEventType
+  method        AuthMethod?
+  userId        String?       @map("user_id") @db.Uuid
+  userSessionId String?       @map("user_session_id") @db.Uuid
+  emailHash     String?       @map("email_hash") @db.Char(64)
+  // Stable code such as INVALID_CREDENTIALS, ACCOUNT_SUSPENDED or RATE_LIMITED.
+  failureReason String?       @map("failure_reason") @db.VarChar(80)
+  ipHash        String?       @map("ip_hash") @db.VarChar(128)
+  userAgent     String?       @map("user_agent") @db.VarChar(512)
+  requestId     String?       @map("request_id") @db.VarChar(100)
+  metadata      Json?
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userSession UserSession? @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([emailHash, createdAt])
+  @@index([type, createdAt])
+  @@map("auth_events")
 }
 
 model Role {
@@ -696,14 +764,37 @@ model SubscriptionRequest {
   createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user     User                @relation("SubscriptionRequester", fields: [userId], references: [id], onDelete: Restrict)
-  plan     SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
-  reviewer User?               @relation("SubscriptionRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  user     User                       @relation("SubscriptionRequester", fields: [userId], references: [id], onDelete: Restrict)
+  plan     SubscriptionPlan           @relation(fields: [planId], references: [id], onDelete: Restrict)
+  reviewer User?                      @relation("SubscriptionRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   period   SubscriptionPeriod?
+  events   SubscriptionRequestEvent[]
 
   @@index([userId, status, submittedAt])
   @@index([status, submittedAt])
   @@map("subscription_requests")
+}
+
+// Status history of a subscription request: submitted, approved, rejected or
+// cancelled, with who did it and why (Backend_architecture.md §7.3, §10.1).
+// Append-only; subscription_requests holds the current state. fromStatus is null
+// for the submission event. Written in the same transaction as the status change.
+model SubscriptionRequestEvent {
+  id          String                     @id @default(uuid()) @db.Uuid
+  requestId   String                     @map("request_id") @db.Uuid
+  fromStatus  SubscriptionRequestStatus? @map("from_status")
+  toStatus    SubscriptionRequestStatus  @map("to_status")
+  actorUserId String?                    @map("actor_user_id") @db.Uuid
+  reason      String?                    @db.Text
+  metadata    Json?
+  createdAt   DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  request SubscriptionRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  actor   User?               @relation("SubscriptionRequestEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([requestId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("subscription_request_events")
 }
 
 model SubscriptionPeriod {
@@ -998,10 +1089,31 @@ model TestVersion {
   sections      TestVersionSection[]
   questions     TestVersionQuestion[]
   attempts      TestAttempt[]
+  releaseEvents ResultReleaseEvent[]
 
   @@unique([testId, versionNumber])
   @@index([testId, status])
   @@map("test_versions")
+}
+
+// History of admin decisions to release or withhold detailed solutions (answer
+// review) for a test version (Backend_architecture.md §7.3, §10.3). The version's
+// answerReviewReleaseAt holds the current state: set when released, null when
+// withheld. Written in the same transaction as that change. Scores are always
+// shown on submission; only the answer review is gated.
+model ResultReleaseEvent {
+  id            String              @id @default(uuid()) @db.Uuid
+  testVersionId String              @map("test_version_id") @db.Uuid
+  action        ResultReleaseAction
+  actorUserId   String?             @map("actor_user_id") @db.Uuid
+  reason        String?             @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  testVersion TestVersion @relation(fields: [testVersionId], references: [id], onDelete: Restrict)
+  actor       User?       @relation("ResultReleaseActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([testVersionId, createdAt])
+  @@map("result_release_events")
 }
 
 model TestVersionSection {
@@ -1567,4 +1679,36 @@ model AuditLog {
   @@index([targetType, targetId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+// Request idempotency keys (Backend_architecture.md §9.6). A key is scoped to one
+// operation (for example "orders.create") and one actor: actorKey is "user:<uuid>",
+// "guest:<token hash>" or "system:<name>". The request starts by inserting an
+// IN_PROGRESS row; a concurrent duplicate hits the unique constraint. On success,
+// or on a deterministic 4xx, the row becomes COMPLETED with the response status and
+// a reference to the resulting resource, so replays return the same outcome. On a
+// retryable failure the row is deleted. A different request body under the same
+// key (requestHash mismatch) is a 409 conflict. lockedUntil lets a crashed request's
+// row be taken over; expiresAt drives cleanup. responseBody is optional and must
+// never contain secrets or tokens.
+model IdempotencyRecord {
+  id             String            @id @default(uuid()) @db.Uuid
+  operation      String            @db.VarChar(100)
+  actorKey       String            @map("actor_key") @db.VarChar(160)
+  idempotencyKey String            @map("idempotency_key") @db.VarChar(255)
+  // SHA-256 hex of the canonicalized request body.
+  requestHash    String            @map("request_hash") @db.Char(64)
+  status         IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?              @map("response_status")
+  resourceType   String?           @map("resource_type") @db.VarChar(100)
+  resourceId     String?           @map("resource_id") @db.VarChar(100)
+  responseBody   Json?             @map("response_body")
+  lockedUntil    DateTime          @map("locked_until") @db.Timestamptz(6)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt    DateTime?         @map("completed_at") @db.Timestamptz(6)
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([operation, actorKey, idempotencyKey])
+  @@index([expiresAt])
+  @@map("idempotency_records")
 }

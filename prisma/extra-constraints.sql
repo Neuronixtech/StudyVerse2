@@ -144,3 +144,24 @@ CREATE UNIQUE INDEX "admin_invitations_one_pending_per_email"
 CREATE UNIQUE INDEX "addresses_one_default_per_user"
   ON "addresses" ("user_id")
   WHERE "is_default" = TRUE;
+
+-- A failed sign-in records a reason code.
+ALTER TABLE "auth_events"
+  ADD CONSTRAINT "auth_events_failure_reason_check"
+  CHECK ("type" <> 'LOGIN_FAILED' OR "failure_reason" IS NOT NULL);
+
+-- A request event is a real status change, and a rejection says why.
+ALTER TABLE "subscription_request_events"
+  ADD CONSTRAINT "subscription_request_events_transition_check"
+  CHECK ("from_status" IS DISTINCT FROM "to_status"),
+  ADD CONSTRAINT "subscription_request_events_rejection_reason_check"
+  CHECK ("to_status" <> 'REJECTED' OR "reason" IS NOT NULL);
+
+-- A completed idempotent request has a stored outcome; times are coherent.
+ALTER TABLE "idempotency_records"
+  ADD CONSTRAINT "idempotency_records_completed_check"
+  CHECK ("status" <> 'COMPLETED' OR ("response_status" IS NOT NULL AND "completed_at" IS NOT NULL)),
+  ADD CONSTRAINT "idempotency_records_response_status_check"
+  CHECK ("response_status" IS NULL OR "response_status" BETWEEN 100 AND 599),
+  ADD CONSTRAINT "idempotency_records_valid_times_check"
+  CHECK ("expires_at" > "created_at");
