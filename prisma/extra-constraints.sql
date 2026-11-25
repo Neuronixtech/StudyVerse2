@@ -32,6 +32,12 @@ ALTER TABLE "carts"
   ADD CONSTRAINT "carts_exactly_one_owner_check"
   CHECK (num_nonnulls("user_id", "guest_token_hash") = 1);
 
+-- A merged guest cart names the cart it was folded into, and only merged carts do.
+ALTER TABLE "carts"
+  ADD CONSTRAINT "carts_merge_target_check"
+  CHECK (("status" = 'MERGED') = ("merged_into_cart_id" IS NOT NULL)
+    AND ("merged_into_cart_id" IS NULL OR "merged_into_cart_id" <> "id"));
+
 -- Anonymous demo attempts may be unregistered; account attempts must have a user.
 ALTER TABLE "test_attempts"
   ADD CONSTRAINT "test_attempts_exactly_one_actor_check"

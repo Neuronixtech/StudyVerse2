@@ -198,10 +198,13 @@ enum InventoryMovementType {
   REPLACEMENT_ISSUED
 }
 
+// ACTIVE: in use. CONVERTED: became an order. ABANDONED: expired unused.
+// MERGED: a guest cart folded into the learner's active cart at sign-in.
 enum CartStatus {
   ACTIVE
   CONVERTED
   ABANDONED
+  MERGED
 }
 
 enum OrderStatus {
@@ -1484,16 +1487,20 @@ model Address {
 // (userId set, guestTokenHash cleared) or merged into the learner's active cart
 // (BOOKSTORE_SPEC §3.2).
 model Cart {
-  id             String     @id @default(uuid()) @db.Uuid
-  userId         String?    @map("user_id") @db.Uuid
-  guestTokenHash String?    @map("guest_token_hash") @db.VarChar(255)
-  status         CartStatus @default(ACTIVE)
-  expiresAt      DateTime?  @map("expires_at") @db.Timestamptz(6)
-  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id               String     @id @default(uuid()) @db.Uuid
+  userId           String?    @map("user_id") @db.Uuid
+  guestTokenHash   String?    @map("guest_token_hash") @db.VarChar(255)
+  status           CartStatus @default(ACTIVE)
+  // Set with status MERGED: the learner cart this guest cart was folded into.
+  mergedIntoCartId String?    @map("merged_into_cart_id") @db.Uuid
+  expiresAt        DateTime?  @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items CartItem[]
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mergedInto  Cart?      @relation("CartMerge", fields: [mergedIntoCartId], references: [id], onDelete: Restrict)
+  mergedCarts Cart[]     @relation("CartMerge")
+  items       CartItem[]
 
   @@index([userId, status])
   @@index([status, expiresAt])
