@@ -278,3 +278,36 @@ CREATE TRIGGER "test_version_sections_frozen_after_publish"
 CREATE TRIGGER "test_version_questions_frozen_after_publish"
   BEFORE INSERT OR UPDATE OR DELETE ON "test_version_questions"
   FOR EACH ROW EXECUTE FUNCTION "guard_published_test_version_content"();
+
+-- Payment and subscription decisions are final, and the evidence is never deleted.
+-- payment_submissions also holds the admin's decision (the architecture's separate
+-- payment_decisions table is folded in). History survives because a resubmission
+-- after a rejection is a new row and a decided row is write-once: once its status
+-- leaves the open state, nothing but updated_at may change. Rows can't be deleted
+-- (Backend_architecture.md §7.4, §14.2). The trigger argument is the open status.
+CREATE FUNCTION "guard_final_decision"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  open_status text := TG_ARGV[0];
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION '% % is payment or access evidence and cannot be deleted', TG_TABLE_NAME, OLD."id"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+
+  IF OLD."status"::text <> open_status
+     AND (to_jsonb(NEW) - 'updated_at') IS DISTINCT FROM (to_jsonb(OLD) - 'updated_at') THEN
+    RAISE EXCEPTION '% % was decided (%) and cannot change', TG_TABLE_NAME, OLD."id", OLD."status"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "payment_submissions_decision_is_final"
+  BEFORE UPDATE OR DELETE ON "payment_submissions"
+  FOR EACH ROW EXECUTE FUNCTION "guard_final_decision"('SUBMITTED');
+
+CREATE TRIGGER "subscription_requests_decision_is_final"
+  BEFORE UPDATE OR DELETE ON "subscription_requests"
+  FOR EACH ROW EXECUTE FUNCTION "guard_final_decision"('PENDING');
