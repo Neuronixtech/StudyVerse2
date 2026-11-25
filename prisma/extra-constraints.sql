@@ -1,6 +1,8 @@
--- PostgreSQL constraints Prisma Schema Language cannot currently express directly.
--- Add these statements to the initial Prisma-generated migration.sql before applying it.
--- Re-check generated enum/table names if you change @@map or enum names.
+-- PostgreSQL rules Prisma Schema Language can't express: partial unique indexes, CHECK
+-- constraints and triggers. Reviewed in November 2026 and appended verbatim to the
+-- initial migration, prisma/migrations/20261125070533_init/migration.sql; a test checks
+-- that the two stay identical. Once that migration is applied, never edit this file:
+-- add new or changed rules in a new migration.
 
 -- At most one pending subscription activation request per learner.
 CREATE UNIQUE INDEX "subscription_requests_one_pending_per_user"
