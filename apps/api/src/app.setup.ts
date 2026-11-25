@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { ProblemDetailsFilter } from "./common/errors/problem-details.filter.js";
 import { createValidationPipe } from "./common/errors/validation.js";
 import type { AppConfig } from "./config/app-config.js";
+import { setupOpenApi } from "./openapi/openapi.js";
 
 /**
  * Options the app must be created with, in main.ts and in tests alike. The default
@@ -43,4 +44,7 @@ export function configureApp(app: NestExpressApplication, config: AppConfig): vo
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: "1" });
   app.useGlobalPipes(createValidationPipe());
   app.useGlobalFilters(new ProblemDetailsFilter());
+
+  // OpenAPI docs at /api/docs (JSON at /api/docs/openapi.json) when enabled.
+  setupOpenApi(app, config);
 }

@@ -1,4 +1,5 @@
 import { Controller, Get, Res, ServiceUnavailableException } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
 import { HealthCheck, HealthCheckService, type HealthCheckResult } from "@nestjs/terminus";
 import type { Response } from "express";
 import { DatabaseHealthIndicator } from "./database.health.js";
@@ -11,6 +12,7 @@ const isHealthCheckResult = (value: unknown): value is HealthCheckResult =>
  * standard shape ({ status, info, error, details }) with 200 or 503. @HealthCheck()
  * marks them uncacheable; they aren't written to the request log.
  */
+@ApiTags("health")
 @Controller("health")
 export class HealthController {
   constructor(
