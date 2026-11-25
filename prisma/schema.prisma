@@ -15,10 +15,14 @@ datasource db {
 // ENUMS
 // -----------------------------------------------------------------------------
 
+// ACTIVE: can sign in. SUSPENDED: blocked by an admin, reversible.
+// PENDING_DELETION: the user asked to delete the account. DEACTIVATED: the account
+// is closed (soft-deleted): sign-in is blocked and history is kept.
 enum UserStatus {
   ACTIVE
   SUSPENDED
   PENDING_DELETION
+  DEACTIVATED
 }
 
 enum OAuthProvider {
@@ -327,6 +331,11 @@ enum IdempotencyStatus {
 // IDENTITY, AUTHENTICATION AND AUTHORIZATION
 // -----------------------------------------------------------------------------
 
+// Accounts are never hard-deleted by the application. Closing an account sets
+// status DEACTIVATED and deactivatedAt: sign-in stops, sessions are revoked, and
+// exam attempts, subscriptions, orders and audit history stay intact. Removing or
+// anonymizing personal fields follows the account-deletion retention policy
+// (Backend_architecture.md §14.3; still to be decided).
 model User {
   id                  String     @id @default(uuid()) @db.Uuid
   email               String     @db.VarChar(320)
@@ -339,6 +348,7 @@ model User {
   createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletionRequestedAt DateTime?  @map("deletion_requested_at") @db.Timestamptz(6)
+  deactivatedAt       DateTime?  @map("deactivated_at") @db.Timestamptz(6)
 
   credential                   UserCredential?
   oauthAccounts                OAuthAccount[]
@@ -1242,7 +1252,9 @@ model TestAttempt {
 
   test          Test                   @relation(fields: [testId], references: [id], onDelete: Restrict)
   testVersion   TestVersion            @relation(fields: [testVersionId], references: [id], onDelete: Restrict)
-  user          User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // RESTRICT, not SET NULL: SET NULL would leave an attempt with no actor, which the
+  // exactly-one-actor CHECK forbids. Learners are deactivated, never deleted.
+  user          User?                  @relation(fields: [userId], references: [id], onDelete: Restrict)
   states        AttemptQuestionState[]
   sectionStates AttemptSectionState[]
   result        AttemptResult?

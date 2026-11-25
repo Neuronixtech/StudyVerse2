@@ -173,6 +173,11 @@ CREATE UNIQUE INDEX "attempt_section_states_one_active_per_attempt"
   ON "attempt_section_states" ("attempt_id")
   WHERE "active_since" IS NOT NULL;
 
+-- A closed (soft-deleted) account records when it was closed.
+ALTER TABLE "users"
+  ADD CONSTRAINT "users_deactivation_check"
+  CHECK ("status" <> 'DEACTIVATED' OR "deactivated_at" IS NOT NULL);
+
 -- A failed sign-in records a reason code.
 ALTER TABLE "auth_events"
   ADD CONSTRAINT "auth_events_failure_reason_check"
