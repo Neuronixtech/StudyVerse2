@@ -1,14 +1,19 @@
 # Local development infrastructure (Backend_architecture.md §12.2, §13).
 #
-#   cp infra/.env.example infra/.env     # then set the three passwords
-#   docker compose -f infra/compose.yaml up -d
+#   cp infra/.env.example infra/.env     # then set the passwords
+#   docker compose -f infra/compose.yaml up -d                  # PostgreSQL only
+#   docker compose -f infra/compose.yaml --profile app up -d    # + migrations + API container
 #
 # PostgreSQL listens on 127.0.0.1 only. Roles and databases are created on the first
 # start of an empty volume by postgres/init/01-roles-and-databases.sh. To re-run it,
 # remove the volume (local data is lost): docker compose -f infra/compose.yaml down -v
 #
-# Development only. Production Compose (pinned digests, secrets, Caddy, the API and
-# worker containers, backups) is a separate file added later.
+# The "app" profile applies the committed migrations to the local studyverse database
+# (the migrate service) before starting the API. Don't run it against a database you
+# want to keep until the initial migration is approved.
+#
+# Development only. Production Compose (pinned digests, secrets, Caddy, the worker,
+# backups) is a separate file added later.
 name: studyverse
 
 services:
@@ -39,6 +44,52 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
+
+  # Applies committed migrations once, as the owner role, then exits (§12.2: migrations
+  # are a controlled deployment step, never run by every API instance).
+  migrate:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: migrator
+    environment:
+      # Passwords must be URL-safe (infra/.env.example suggests hex).
+      DATABASE_MIGRATION_URL: postgresql://studyverse_migrator:${STUDYVERSE_MIGRATOR_PASSWORD}@postgres:5432/studyverse
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3001"
+      LOG_LEVEL: ${API_LOG_LEVEL:-info}
+      # The least-privilege runtime role (§13.1).
+      DATABASE_URL: postgresql://studyverse_app:${STUDYVERSE_APP_PASSWORD}@postgres:5432/studyverse
+      TRUST_PROXY: "false"
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-3001}:3001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    # The image's HEALTHCHECK probes /api/v1/health/live.
+    restart: unless-stopped
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   postgres-data:

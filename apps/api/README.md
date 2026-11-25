@@ -6,7 +6,7 @@ Status: Milestone 1 (backend foundation). The API boots, validates its configura
 
 ## Requirements
 
-- Node.js 22, version 22.22.3 or later (`@nestjs/schematics` needs it; CI uses the latest 22.x)
+- Node.js **22.23.5**, pinned in [`.nvmrc`](.nvmrc) (`nvm use` in `apps/api`). Any 22.x from 22.22.3 works (`engines`; `@nestjs/schematics` needs 22.22.3). CI (`setup-node` reads `.nvmrc`) and the container image (`ARG NODE_VERSION` in the Dockerfile) use the same version; `src/runtime-versions.spec.ts` fails if they drift apart
 - PostgreSQL 18: the Docker Compose service in [`infra/`](../../infra/compose.yaml), or any PostgreSQL 18 with the same roles
 
 ## Local setup
@@ -24,6 +24,19 @@ npm run start:dev                          # http://127.0.0.1:3001/api/v1/health
 ```
 
 `.env` is git-ignored. Real environment variables override it. Deployments set variables directly and have no `.env` file.
+
+## Container
+
+[`Dockerfile`](Dockerfile) builds from the repository root, because it needs `prisma/`:
+
+| Target     | Contents                                                                                                                           | Runs                                                            |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `runtime`  | `dist/` and production dependencies only (no Prisma CLI, TypeScript or test tools), code owned by root, process as the `node` user | `node dist/main.js`; `HEALTHCHECK` probes `/api/v1/health/live` |
+| `migrator` | The build stage, with the Prisma CLI and the migrations                                                                            | `prisma migrate deploy` once, then exits                        |
+
+No secrets or `.env` files are in the image (`Dockerfile.dockerignore`): configuration comes from environment variables at run time. `SIGTERM` (for example `docker stop`) closes the HTTP server and the database pool and exits 0 (`src/shutdown.ts`).
+
+`docker compose -f infra/compose.yaml --profile app up -d` runs PostgreSQL, the `migrate` job, then the API on `127.0.0.1:3001`. The API container is `read_only`, drops every Linux capability and sets `no-new-privileges`. The profile applies migrations to the local `studyverse` database. CI's `container` job runs the same stack and checks health, the user, the absence of env files and the shutdown exit code.
 
 ## Scripts
 

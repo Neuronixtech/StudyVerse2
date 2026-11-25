@@ -1,0 +1,14 @@
+# Build context is the repository root. Send only what the API image needs: the API
+# package and the Prisma schema and migrations. Never local env files or build output.
+*
+!apps/api/**
+!prisma/**
+
+apps/api/node_modules
+apps/api/dist
+apps/api/coverage
+apps/api/src/generated
+apps/api/test
+apps/api/.env
+apps/api/.env.*
+**/.DS_Store
