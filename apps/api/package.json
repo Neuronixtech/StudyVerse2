@@ -26,7 +26,8 @@
     "db:format": "prisma format",
     "db:migrate:status": "prisma migrate status",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:migrate:dev": "prisma migrate dev"
+    "db:migrate:dev": "prisma migrate dev",
+    "db:initial-migration": "node scripts/initial-migration.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.6.0",
