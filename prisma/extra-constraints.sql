@@ -191,6 +191,36 @@ ALTER TABLE "users"
   ADD CONSTRAINT "users_deactivation_check"
   CHECK ("status" <> 'DEACTIVATED' OR "deactivated_at" IS NOT NULL);
 
+-- A correction targets exactly the kind of decision it names and gives a reason, and
+-- its access effect fits the kind: an approval reversal revokes the period that
+-- approval created; a rejection reversal grants a new period or changes nothing;
+-- payment corrections never change access (refund and order consequences aren't
+-- defined by the product).
+ALTER TABLE "decision_corrections"
+  ADD CONSTRAINT "decision_corrections_target_check"
+  CHECK (
+    ("kind" IN ('SUBSCRIPTION_APPROVAL_REVERSED', 'SUBSCRIPTION_REJECTION_REVERSED')
+      AND "subscription_request_id" IS NOT NULL AND "payment_submission_id" IS NULL)
+    OR ("kind" IN ('PAYMENT_APPROVAL_REVERSED', 'PAYMENT_REJECTION_REVERSED')
+      AND "payment_submission_id" IS NOT NULL AND "subscription_request_id" IS NULL)),
+  ADD CONSTRAINT "decision_corrections_access_effect_check"
+  CHECK (
+    ("access_effect" = 'NONE') = ("subscription_period_id" IS NULL)
+    AND CASE "kind"
+      WHEN 'SUBSCRIPTION_APPROVAL_REVERSED' THEN "access_effect" = 'ACCESS_REVOKED'
+      WHEN 'SUBSCRIPTION_REJECTION_REVERSED' THEN "access_effect" IN ('ACCESS_GRANTED', 'NONE')
+      ELSE "access_effect" = 'NONE'
+    END),
+  ADD CONSTRAINT "decision_corrections_reason_check"
+  CHECK (length(btrim("reason")) > 0);
+
+-- A REVOKED period records when and why; no other period does.
+ALTER TABLE "subscription_periods"
+  ADD CONSTRAINT "subscription_periods_revocation_check"
+  CHECK (
+    ("status" = 'REVOKED' AND "revoked_at" IS NOT NULL AND "revocation_reason" IS NOT NULL)
+    OR ("status" <> 'REVOKED' AND "revoked_at" IS NULL AND "revocation_reason" IS NULL));
+
 -- A failed sign-in records a reason code.
 ALTER TABLE "auth_events"
   ADD CONSTRAINT "auth_events_failure_reason_check"
@@ -400,6 +430,130 @@ CREATE TRIGGER "audit_logs_no_truncate"
   BEFORE TRUNCATE ON "audit_logs"
   FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
 
+-- Decision corrections: checked against the original decision on insert, then
+-- append-only. The original decision rows themselves are never modified.
+CREATE FUNCTION "validate_decision_correction"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  expected_status text := CASE WHEN NEW."kind"::text LIKE '%APPROVAL_REVERSED'
+                               THEN 'APPROVED' ELSE 'REJECTED' END;
+  decision_status text;
+  learner uuid;
+  period "subscription_periods"%ROWTYPE;
+BEGIN
+  IF NEW."subscription_request_id" IS NOT NULL THEN
+    SELECT "status"::text, "user_id" INTO decision_status, learner
+      FROM "subscription_requests" WHERE "id" = NEW."subscription_request_id";
+  ELSE
+    SELECT "status"::text INTO decision_status
+      FROM "payment_submissions" WHERE "id" = NEW."payment_submission_id";
+  END IF;
+  IF decision_status IS DISTINCT FROM expected_status THEN
+    RAISE EXCEPTION '% reverses an % decision, but the decision is %',
+      NEW."kind", expected_status, coalesce(decision_status, 'missing')
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+
+  IF NEW."subscription_period_id" IS NOT NULL THEN
+    SELECT * INTO period FROM "subscription_periods" WHERE "id" = NEW."subscription_period_id";
+    IF period."user_id" IS DISTINCT FROM learner THEN
+      RAISE EXCEPTION 'subscription period % belongs to another learner', NEW."subscription_period_id"
+        USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    IF NEW."access_effect" = 'ACCESS_REVOKED'
+       AND (period."source_request_id" IS DISTINCT FROM NEW."subscription_request_id"
+            OR period."status" <> 'REVOKED') THEN
+      RAISE EXCEPTION 'an approval reversal must revoke the period that approval created (period %)',
+        NEW."subscription_period_id"
+        USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    IF NEW."access_effect" = 'ACCESS_GRANTED'
+       AND (period."source_request_id" IS NOT NULL OR period."status" <> 'ACTIVE'
+            OR period."activated_by_id" IS DISTINCT FROM NEW."corrected_by_id") THEN
+      RAISE EXCEPTION 'a rejection reversal grants a new active period activated by the correcting admin (period %)',
+        NEW."subscription_period_id"
+        USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "decision_corrections_validate"
+  BEFORE INSERT ON "decision_corrections"
+  FOR EACH ROW EXECUTE FUNCTION "validate_decision_correction"();
+
+CREATE TRIGGER "decision_corrections_append_only"
+  BEFORE UPDATE OR DELETE ON "decision_corrections"
+  FOR EACH ROW EXECUTE FUNCTION "forbid_change"();
+
+CREATE TRIGGER "decision_corrections_no_truncate"
+  BEFORE TRUNCATE ON "decision_corrections"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+-- Subscription periods are access history: never deleted, and the granted window,
+-- learner, plan, source request and activator never change. The only changes are
+-- ACTIVE -> EXPIRED (expiry job) and ACTIVE or EXPIRED -> REVOKED with revoked_at and
+-- revocation_reason, after which the revocation itself is fixed.
+CREATE FUNCTION "guard_subscription_period"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  changeable text[] := ARRAY['status', 'revoked_at', 'revocation_reason'];
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'subscription period % is access history and cannot be deleted', OLD."id"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+  IF (to_jsonb(NEW) - changeable) IS DISTINCT FROM (to_jsonb(OLD) - changeable) THEN
+    RAISE EXCEPTION 'subscription period %: only its status and revocation can change', OLD."id"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+  IF NEW."status" IS DISTINCT FROM OLD."status" THEN
+    IF NOT ((OLD."status" = 'ACTIVE' AND NEW."status" IN ('EXPIRED', 'REVOKED'))
+            OR (OLD."status" = 'EXPIRED' AND NEW."status" = 'REVOKED')) THEN
+      RAISE EXCEPTION 'subscription period %: % -> % is not allowed', OLD."id", OLD."status", NEW."status"
+        USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+  ELSIF NEW."revoked_at" IS DISTINCT FROM OLD."revoked_at"
+        OR NEW."revocation_reason" IS DISTINCT FROM OLD."revocation_reason" THEN
+    RAISE EXCEPTION 'subscription period %: a revocation cannot be changed', OLD."id"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "subscription_periods_history_guard"
+  BEFORE UPDATE OR DELETE ON "subscription_periods"
+  FOR EACH ROW EXECUTE FUNCTION "guard_subscription_period"();
+
+CREATE TRIGGER "subscription_periods_no_truncate"
+  BEFORE TRUNCATE ON "subscription_periods"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+-- Every revocation is a recorded correction: by the end of the transaction that
+-- revokes a period, a decision correction must reference it with ACCESS_REVOKED
+-- (who, when and why). Deferred so the period can be revoked first and the
+-- correction inserted after it, in either order within the transaction.
+CREATE FUNCTION "require_correction_for_revocation"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM "decision_corrections"
+                 WHERE "subscription_period_id" = NEW."id" AND "access_effect" = 'ACCESS_REVOKED') THEN
+    RAISE EXCEPTION 'subscription period % was revoked without a decision correction recording who and why', NEW."id"
+      USING ERRCODE = 'integrity_constraint_violation';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+CREATE CONSTRAINT TRIGGER "subscription_periods_revocation_needs_correction"
+  AFTER UPDATE OF "status" ON "subscription_periods"
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW
+  WHEN (NEW."status" = 'REVOKED' AND OLD."status" <> 'REVOKED')
+  EXECUTE FUNCTION "require_correction_for_revocation"();
+
 -- -----------------------------------------------------------------------------
 -- Runtime role privileges.
 -- infra/postgres/init/01-roles-and-databases.sh gives studyverse_app row access
@@ -413,6 +567,9 @@ DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'studyverse_app') THEN
     REVOKE UPDATE, DELETE, TRUNCATE ON "audit_logs" FROM studyverse_app;
+    REVOKE UPDATE, DELETE, TRUNCATE ON "decision_corrections" FROM studyverse_app;
+    -- Rows the database never lets anyone delete (triggers above): no DELETE either.
+    REVOKE DELETE, TRUNCATE ON "subscription_periods", "subscription_requests", "payment_submissions" FROM studyverse_app;
     IF to_regclass('public._prisma_migrations') IS NOT NULL THEN
       REVOKE ALL ON "_prisma_migrations" FROM studyverse_app;
     END IF;

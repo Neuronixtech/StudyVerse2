@@ -84,7 +84,7 @@ describe("initial migration on PostgreSQL", () => {
        WHERE n.nspname = 'public' AND k.contype = 'c' ORDER BY 1`,
     );
     expect(rows.map((r) => r.conname)).toEqual(expected);
-    expect(expected).toHaveLength(38);
+    expect(expected).toHaveLength(42);
   });
 
   it("creates every trigger and function named in extra-constraints.sql", async () => {
@@ -92,7 +92,9 @@ describe("initial migration on PostgreSQL", () => {
       `SELECT t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
        JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND NOT t.tgisinternal ORDER BY 1`,
     );
-    expect(triggers.rows.map((r) => r.tgname)).toEqual(namesIn(/CREATE TRIGGER "([a-z_]+)"/g));
+    expect(triggers.rows.map((r) => r.tgname)).toEqual(
+      namesIn(/CREATE (?:CONSTRAINT )?TRIGGER "([a-z_]+)"/g),
+    );
     const functions = await db.query<{ proname: string }>(
       "SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' ORDER BY 1",
     );
@@ -108,11 +110,15 @@ describe("initial migration on PostgreSQL", () => {
                     WHERE has_table_privilege('studyverse_app', format('public.%I', t.tablename), p)) AS privileges
        FROM pg_tables t WHERE t.schemaname = 'public'`,
     );
-    expect(rows.length).toBe(69); // 68 application tables + _prisma_migrations
+    expect(rows.length).toBe(70); // 69 application tables + _prisma_migrations
     expect(rows.filter((r) => r.owner !== "studyverse_migrator")).toEqual([]);
     const ROW_ACCESS = ["SELECT", "INSERT", "UPDATE", "DELETE"];
     const EXPECTED: Record<string, string[]> = {
       audit_logs: ["SELECT", "INSERT"], // append-only history
+      decision_corrections: ["SELECT", "INSERT"], // append-only corrections
+      subscription_periods: ["SELECT", "INSERT", "UPDATE"], // never deleted
+      subscription_requests: ["SELECT", "INSERT", "UPDATE"], // never deleted
+      payment_submissions: ["SELECT", "INSERT", "UPDATE"], // never deleted
       _prisma_migrations: [], // migration bookkeeping: migrator only
     };
     const unexpected = rows.filter(

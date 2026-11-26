@@ -345,6 +345,25 @@ enum IdempotencyStatus {
   COMPLETED
 }
 
+// Which write-once decision a correction reverses.
+enum DecisionCorrectionKind {
+  SUBSCRIPTION_APPROVAL_REVERSED
+  SUBSCRIPTION_REJECTION_REVERSED
+  PAYMENT_APPROVAL_REVERSED
+  PAYMENT_REJECTION_REVERSED
+}
+
+// The access adjustment recorded with a correction. NONE: no entitlement change (all
+// payment corrections, whose financial consequences aren't defined yet; or a reversed
+// rejection where access was already sorted out). ACCESS_REVOKED: the period a wrong
+// approval created was revoked. ACCESS_GRANTED: a period was granted because a
+// rejection was wrong.
+enum CorrectionAccessEffect {
+  NONE
+  ACCESS_REVOKED
+  ACCESS_GRANTED
+}
+
 // -----------------------------------------------------------------------------
 // IDENTITY, AUTHENTICATION AND AUTHORIZATION
 // -----------------------------------------------------------------------------
@@ -414,6 +433,7 @@ model User {
   resultReleaseEvents          ResultReleaseEvent[]       @relation("ResultReleaseActor")
   orderEventsRecorded          OrderEvent[]               @relation("OrderEventActor")
   storeSettingsUpdated         StoreSetting[]             @relation("StoreSettingUpdater")
+  correctionsMade              DecisionCorrection[]       @relation("DecisionCorrector")
 
   @@index([status, createdAt])
   @@map("users")
@@ -817,11 +837,12 @@ model SubscriptionRequest {
   createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user     User                       @relation("SubscriptionRequester", fields: [userId], references: [id], onDelete: Restrict)
-  plan     SubscriptionPlan           @relation(fields: [planId], references: [id], onDelete: Restrict)
-  reviewer User?                      @relation("SubscriptionRequestReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
-  period   SubscriptionPeriod?
-  events   SubscriptionRequestEvent[]
+  user       User                       @relation("SubscriptionRequester", fields: [userId], references: [id], onDelete: Restrict)
+  plan       SubscriptionPlan           @relation(fields: [planId], references: [id], onDelete: Restrict)
+  reviewer   User?                      @relation("SubscriptionRequestReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  period     SubscriptionPeriod?
+  events     SubscriptionRequestEvent[]
+  correction DecisionCorrection?
 
   @@index([userId, status, submittedAt])
   @@index([status, submittedAt])
@@ -850,6 +871,12 @@ model SubscriptionRequestEvent {
   @@map("subscription_request_events")
 }
 
+// A granted access window. Never deleted, and its window, learner, plan, source and
+// activator never change (trigger in extra-constraints.sql), so access history is
+// preserved. The only changes are ACTIVE -> EXPIRED (expiry job) and ACTIVE or
+// EXPIRED -> REVOKED with revokedAt and revocationReason; a revocation must be
+// recorded by a DecisionCorrection (who and why) in the same transaction (deferred
+// check). Access is current iff status = ACTIVE and startsAt <= now < endsAt.
 model SubscriptionPeriod {
   id               String                   @id @default(uuid()) @db.Uuid
   userId           String                   @map("user_id") @db.Uuid
@@ -865,11 +892,46 @@ model SubscriptionPeriod {
 
   user          User                 @relation("SubscriptionPeriodHolder", fields: [userId], references: [id], onDelete: Restrict)
   plan          SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
-  sourceRequest SubscriptionRequest? @relation(fields: [sourceRequestId], references: [id], onDelete: SetNull)
+  sourceRequest SubscriptionRequest? @relation(fields: [sourceRequestId], references: [id], onDelete: Restrict)
   activatedBy   User?                @relation("SubscriptionPeriodActivator", fields: [activatedById], references: [id], onDelete: Restrict)
+  correction    DecisionCorrection?
 
   @@index([userId, status, startsAt, endsAt])
   @@map("subscription_periods")
+}
+
+// An append-only correction of a write-once decision (a subscription request or a
+// payment submission). The original decision row is never modified: its decision,
+// reviewer and time stay as the historical record, and the effective outcome is
+// "original decision, unless corrected". At most one correction per decision. Rules
+// that span tables (the original decision matches the kind; the period belongs to
+// the same learner and is in the right state) are checked by a trigger.
+//
+// Wrong subscription approval: the service revokes the period that approval created
+// (status REVOKED, revokedAt, revocationReason) and inserts the correction with
+// accessEffect ACCESS_REVOKED in one transaction, plus an audit_logs entry.
+// Wrong rejection: optionally a new period (no source request, activated by the
+// correcting admin) with ACCESS_GRANTED, or NONE.
+// Payment corrections record only the corrected decision (accessEffect NONE): refund
+// and order consequences aren't defined by the product yet.
+model DecisionCorrection {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  kind                  DecisionCorrectionKind
+  subscriptionRequestId String?                @unique @map("subscription_request_id") @db.Uuid
+  paymentSubmissionId   String?                @unique @map("payment_submission_id") @db.Uuid
+  accessEffect          CorrectionAccessEffect @map("access_effect")
+  subscriptionPeriodId  String?                @unique @map("subscription_period_id") @db.Uuid
+  reason                String                 @db.Text
+  correctedById         String                 @map("corrected_by_id") @db.Uuid
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  subscriptionRequest SubscriptionRequest? @relation(fields: [subscriptionRequestId], references: [id], onDelete: Restrict)
+  paymentSubmission   PaymentSubmission?   @relation(fields: [paymentSubmissionId], references: [id], onDelete: Restrict)
+  subscriptionPeriod  SubscriptionPeriod?  @relation(fields: [subscriptionPeriodId], references: [id], onDelete: Restrict)
+  correctedBy         User                 @relation("DecisionCorrector", fields: [correctedById], references: [id], onDelete: Restrict)
+
+  @@index([correctedById, createdAt])
+  @@map("decision_corrections")
 }
 
 // -----------------------------------------------------------------------------
@@ -1614,8 +1676,9 @@ model PaymentSubmission {
   rejectionReason      String?                 @map("rejection_reason") @db.Text
   createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  order    Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  reviewer User? @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  order      Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  reviewer   User?               @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  correction DecisionCorrection?
 
   @@index([orderId, submittedAt])
   @@index([status, submittedAt])

@@ -11,6 +11,8 @@ import {
 
 // Approval condition C: payment and subscription decisions are auditable and write-once.
 const DECIDED = /was decided .* and cannot change/;
+// Two layers: the app role has no DELETE privilege, and a trigger stops every role.
+const NO_DELETE_PRIVILEGE = /permission denied for table/;
 const EVIDENCE = /is payment or access evidence and cannot be deleted/;
 
 describe("payment decisions", () => {
@@ -96,11 +98,23 @@ describe("payment decisions", () => {
         reviewer: await createUser(db),
         reason: "blurred",
       });
-      await expectRefused(db, "DELETE FROM payment_submissions WHERE id = $1", EVIDENCE, [pending]);
-      await expectRefused(db, "DELETE FROM payment_submissions WHERE id = $1", EVIDENCE, [
-        rejected,
-      ]);
+      for (const id of [pending, rejected]) {
+        await expectRefused(
+          db,
+          "DELETE FROM payment_submissions WHERE id = $1",
+          NO_DELETE_PRIVILEGE,
+          [id],
+        );
+      }
     });
+    // The owner role has the privilege; the trigger still refuses.
+    await inRollback(async (db) => {
+      const pending = await createPaymentSubmission(
+        db,
+        await createOrder(db, await createUser(db)),
+      );
+      await expectRefused(db, "DELETE FROM payment_submissions WHERE id = $1", EVIDENCE, [pending]);
+    }, true);
   });
 
   it("keeps every decision when the customer resubmits after a rejection (BOOKSTORE_SPEC §6.3)", async () => {
@@ -142,7 +156,14 @@ describe("payment decisions", () => {
 
   it("refuses TRUNCATE, even for the owner role", async () => {
     await inRollback(async (db) => {
-      await expectRefused(db, "TRUNCATE payment_submissions", /cannot be truncated/);
+      // Plain TRUNCATE: PostgreSQL refuses first (decision_corrections references the table).
+      await expectRefused(
+        db,
+        "TRUNCATE payment_submissions",
+        /cannot be truncated|referenced in a foreign key constraint/,
+      );
+      // TRUNCATE ... CASCADE reaches the statement-level guard.
+      await expectRefused(db, "TRUNCATE payment_submissions CASCADE", /cannot be truncated/);
     }, true);
   });
 });
@@ -195,9 +216,12 @@ describe("subscription decisions", () => {
         DECIDED,
         [request],
       );
-      await expectRefused(db, "DELETE FROM subscription_requests WHERE id = $1", EVIDENCE, [
-        request,
-      ]);
+      await expectRefused(
+        db,
+        "DELETE FROM subscription_requests WHERE id = $1",
+        NO_DELETE_PRIVILEGE,
+        [request],
+      );
     });
   });
 
@@ -256,7 +280,7 @@ describe("subscription decisions", () => {
   });
 });
 
-describe("corrections the current model supports, without touching the original decision", () => {
+describe("compensating actions that don't touch the original decision", () => {
   it("wrong rejection: an admin activates the subscription manually; the rejected request is unchanged", async () => {
     await inRollback(async (db) => {
       const admin = await createUser(db);
@@ -279,39 +303,8 @@ describe("corrections the current model supports, without touching the original 
     });
   });
 
-  it("wrong approval: the period can be revoked; the approved request stays as the historical decision", async () => {
-    await inRollback(async (db) => {
-      const admin = await createUser(db);
-      const learner = await createUser(db);
-      const plan = await createPlan(db);
-      const request = await createSubscriptionRequest(db, learner, plan);
-      await db.query(
-        "UPDATE subscription_requests SET status = 'APPROVED', reviewed_by_id = $2, reviewed_at = now() WHERE id = $1",
-        [request, admin],
-      );
-      const period = await scalar<string>(
-        db,
-        `INSERT INTO subscription_periods (id, user_id, plan_id, source_request_id, starts_at, ends_at, activated_by_id)
-         VALUES (gen_random_uuid(), $1, $2, $3, now(), now() + interval '30 days', $4) RETURNING id`,
-        [learner, plan, request, admin],
-      );
-      await expectAccepted(
-        db,
-        "UPDATE subscription_periods SET status = 'REVOKED', revoked_at = now(), revocation_reason = 'payment never arrived' WHERE id = $1",
-        [period],
-      );
-      expect(
-        await scalar(db, "SELECT status FROM subscription_requests WHERE id = $1", [request]),
-      ).toBe("APPROVED");
-      // Gap (documented, proposal pending): there is no column recording who revoked it.
-      const columns = await db.query(
-        "SELECT column_name FROM information_schema.columns WHERE table_name = 'subscription_periods' AND column_name LIKE 'revoked%'",
-      );
-      expect(columns.rows.map((r: { column_name: string }) => r.column_name)).toEqual([
-        "revoked_at",
-      ]);
-    });
-  });
+  // Correcting a wrong approval (revoking the period it created) is covered by
+  // corrections.int-spec.ts, which tests the decision-correction workflow.
 
   it("the audit trail of a correction is an audit_logs row whose actor can't be deleted", async () => {
     await inRollback(async (db) => {
