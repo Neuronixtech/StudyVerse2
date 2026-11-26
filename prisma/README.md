@@ -97,6 +97,8 @@ Do not assume a Prisma relation alone proves that two linked rows belong to the 
 - Exactly one identity for a cart and for an exam attempt (learner or guest).
 - A `MERGED` cart names the cart it was merged into, and only merged carts do.
 - A decided subscription request or payment names the reviewer and time; a rejection names a reason.
+- A decision correction targets exactly the decision its kind names, has a non-blank reason, and its access effect fits the kind. A `REVOKED` subscription period has `revokedAt` and `revocationReason`; no other period does.
+- A section's subject-name snapshot exists only when it has a subject.
 - A `DEACTIVATED` account has `deactivatedAt`.
 - Section timer state: non-negative time used; a locked section is never active.
 - Failed sign-ins carry a reason code. Request events change status, and rejections carry a reason. Completed idempotency records store a response status between 100 and 599.
@@ -104,10 +106,24 @@ Do not assume a Prisma relation alone proves that two linked rows belong to the 
 
 And triggers:
 - **Published test versions are immutable.** Once a version is `PUBLISHED` or `SUPERSEDED`, only the move to `SUPERSEDED`, `answerReviewReleaseAt` and `updatedAt` may change, and the version can't be deleted. Its sections and questions can't be added, changed or removed.
+- **Subject labels are snapshotted at publication.** Publishing a version copies each section's subject name into `subject_name_snapshot`, frozen with the version. Renaming a subject never relabels a published test; drafts show the current name (label = `COALESCE(subject_name_snapshot, subjects.name)`).
 - **Decisions are final.** A decided payment submission or subscription request is write-once, and neither can be deleted.
-- **No TRUNCATE** on `test_versions`, `test_version_sections`, `test_version_questions`, `payment_submissions` or `subscription_requests`. Row-level triggers don't fire on TRUNCATE, so these statement-level guards close that bypass for the owner role as well. The API's role has no TRUNCATE right at all.
+- **Corrections are append-only and checked.** A decision correction must match the original decision and, for subscriptions, the right period; it can never be changed or deleted.
+- **Access periods are history.** A subscription period is never deleted and its window, learner, plan, source and activator never change. The only changes are `ACTIVE → EXPIRED` and `ACTIVE/EXPIRED → REVOKED`. A deferred constraint trigger refuses, at commit, any revocation that no correction records.
+- **Audit logs are append-only.** `audit_logs` rows can be inserted, never updated or deleted.
+- **No TRUNCATE** on `test_versions`, `test_version_sections`, `test_version_questions`, `payment_submissions`, `subscription_requests`, `subscription_periods`, `decision_corrections` or `audit_logs`. Row-level triggers don't fire on TRUNCATE, so these statement-level guards close that bypass for the owner role as well. The API's role has no TRUNCATE right at all.
+
+And **runtime-role privileges**, narrower than the init script's default row access: `studyverse_app` can only SELECT and INSERT `audit_logs` and `decision_corrections`; can't DELETE `subscription_periods`, `subscription_requests` or `payment_submissions`; and has no access at all to `_prisma_migrations`, which only the migrator writes. This block names the role and is skipped where the role or table doesn't exist (Prisma's shadow database has no `_prisma_migrations`).
 
 Prisma Schema Language can't express any of these. Prisma also leaves them alone: diffing a database that has them against the schema reports no difference (verified on PostgreSQL 18.7). Keep the SQL in the versioned migration history. The trigger error code is `integrity_constraint_violation` (SQLSTATE 23000).
+
+### Trust boundary
+
+The protections above hold against the API's role (`studyverse_app`), application bugs and accidental SQL. They don't hold against whoever controls the **owner role** (`studyverse_migrator`, which owns every table) or the **PostgreSQL superuser**:
+- the owner can `ALTER TABLE ... DISABLE TRIGGER`, drop or replace a guard function, grant itself privileges, or rewrite rows with triggers disabled;
+- the superuser can do all of that and bypass privileges entirely.
+
+That is inherent to PostgreSQL, so those credentials are operational secrets: the owner role is used only by the migration job (`prisma migrate deploy`), never by the running API, and the superuser only for administration. Detecting tampering by them needs controls outside the database (restricted access to the credentials, PostgreSQL logging of DDL, backups that preserve history), which belong to the production-hardening phase (architecture §13, §14). The API's role is verified unable to disable triggers, drop guard functions, grant itself privileges, truncate tables, or touch `_prisma_migrations` (`apps/api/test/schema/audit-and-bookkeeping.int-spec.ts` and the suites beside it).
 
 ### Session storage (Milestone 2)
 
@@ -156,17 +172,29 @@ The guest cart is never re-owned or deleted. A browser keeping its guest token c
 
 ### Correcting payment and subscription decisions
 
-Decisions are write-once (trigger), so a mistake is corrected by a new, attributable record, never by editing the original. What the approved product defines, and the model supports today:
+Decisions are write-once, so a mistake is corrected by a new, attributable record. The original decision row (its outcome, reviewer and time) is never modified and stays as the historical record. The effective outcome is "original decision, unless corrected".
 
 | Mistake | Correction | Recorded as |
 |---|---|---|
 | Payment wrongly rejected | Customer resubmits against the same order (BOOKSTORE_SPEC §6.3) | New `payment_submissions` row; the rejected row is unchanged |
-| Subscription request wrongly rejected | Learner submits a new request, or an admin activates manually (prototype `activateManually`) | New `subscription_requests` row, or a `subscription_periods` row with `activatedById` (RESTRICT), plus an `audit_logs` entry |
+| Subscription request wrongly rejected | Learner submits a new request; or an admin records a correction and grants access | New request; or a `decision_corrections` row (`SUBSCRIPTION_REJECTION_REVERSED`, `ACCESS_GRANTED`) referencing a new period with no source request, activated by that admin |
+| Subscription request wrongly approved | Admin revokes the access the approval granted | `decision_corrections` row (`SUBSCRIPTION_APPROVAL_REVERSED`, `ACCESS_REVOKED`) referencing the period that approval created, which becomes `REVOKED` |
+| Payment wrongly approved or rejected | Admin records the correction | `decision_corrections` row (`PAYMENT_*_REVERSED`, access effect `NONE`) |
 
-**Gap, not yet decided:** the product doesn't define how to correct a wrong *approval*. Today a subscription period can be set to `REVOKED` with `revokedAt` and `revocationReason`, but there is no column for who revoked it. A wrongly approved bookstore payment has no correction record at all, only order status changes, `order_events` and `audit_logs`. `audit_logs` rows can still be updated or deleted by the API's role. Proposed smallest change, awaiting a product decision before implementation:
-1. `subscription_periods.revokedById` (FK to users, RESTRICT) and a CHECK that a `REVOKED` period has `revokedAt`, `revokedById` and `revocationReason`.
-2. An append-only `decision_corrections` table: the corrected `payment_submission_id` or `subscription_request_id` (exactly one), `correctedById` (RESTRICT), a required reason and a timestamp, with no UPDATE or DELETE (trigger). The original decision row is never touched; the effective outcome is "original decision, unless corrected". The follow-up (revoking the period, cancelling the order or recording a refund through the existing tables) happens in the same transaction.
-3. `audit_logs` made append-only (no UPDATE, DELETE or TRUNCATE).
+**A wrong subscription approval that already granted access**, in one transaction in the subscriptions service:
+1. **Revoke the entitlement.** The period that approval created (`source_request_id` = the request) gets `status = REVOKED`, `revokedAt = now()` and `revocationReason`. Access is current only for `ACTIVE` periods with `startsAt <= now < endsAt`, so access ends immediately.
+2. **Preserve the historical period.** `startsAt` and `endsAt` are never changed (trigger), so the history still shows the window that was granted, next to when it was revoked. A period that had already expired can still be revoked, to record that it should not have been granted.
+3. **Record the correction.** Insert a `decision_corrections` row: kind, original request, period, `ACCESS_REVOKED`, correcting admin, reason, timestamp. The database refuses the revocation at commit if this row is missing, and refuses the row if the period isn't the one that approval created, isn't revoked, or belongs to another learner.
+4. **Audit it.** Write an `audit_logs` entry (for example `subscription.approval.reverse` with the correction id).
+
+The learner's subscription history is each period joined with its source request and its correction: granted window, current status, the approval, and the correction's kind, reason, admin and time. `subscription_request_events` doesn't record corrections, because the request's status doesn't change.
+
+**Not decided by the product, left open:**
+- **Refunds.** Revoking access isn't a refund, and correcting a payment decision changes no order, stock or refund record. What happens to the order and the money after a payment correction is a bookstore policy to decide; until then a payment correction is a record only.
+- **Later renewals.** If later renewal periods were stacked after the revoked one, they keep their dates (they were approved separately). Whether to move them earlier is a product decision.
+- **Correcting a correction.** At most one correction per decision; a mistaken correction needs a separate, explicitly designed process.
+
+Verified on PostgreSQL 18.7 in `apps/api/test/schema/corrections.int-spec.ts`.
 
 ### Differences from Backend_architecture.md
 
@@ -179,7 +207,7 @@ Table inventory in architecture §7.3 compared with this schema, as reviewed and
 | `email_verification_tokens`, `password_reset_tokens` | `auth_tokens` with `purpose` | Hashed (`tokenHash` unique), single-use (`consumedAt`), expiring (`expiresAt`) per purpose |
 | `sessions` | `user_sessions` (+ the store's `session` table, Milestone 2) | Inventory and revocation in `user_sessions`; session data in the store table |
 | `attempt_answers` | `attempt_question_states.answer` | One row per (attempt, question), unique, so duplicate answer writes are impossible (§7.4) |
-| `payment_decisions` | decision columns on `payment_submissions` | One row per submission, so resubmissions keep earlier decisions. Decision is write-once (trigger), reviewer and time required (CHECK), reviewer `RESTRICT`, rows never deleted. The order timeline (`order_events`) and `audit_logs` record the action too |
+| `payment_decisions` | decision columns on `payment_submissions` | One row per submission, so resubmissions keep earlier decisions. Decision is write-once (trigger), reviewer and time required (CHECK), reviewer `RESTRICT`, rows never deleted. Corrections are separate append-only `decision_corrections` rows. The order timeline (`order_events`) and append-only `audit_logs` record the action too |
 | `question_options` | `question_bank_options` | Same content (options with correct flags and order), named after the question bank |
 | `test_sections` (editable) | sections of a `DRAFT` test version | A draft version is the editable test; publishing freezes it (trigger). Editing a published test creates a new draft version, and attempts keep their version (§10.3) |
 
@@ -195,6 +223,8 @@ Table inventory in architecture §7.3 compared with this schema, as reviewed and
 | `test_versions.resultReleaseMode` | `IMMEDIATE` or `MANUAL` answer-review release (PLAN.md §6.5) |
 | `carts.mergedIntoCartId` + `MERGED` | Guest cart merged into a learner's cart at sign-in (BOOKSTORE_SPEC §3.2) |
 | `users.deactivatedAt` + `DEACTIVATED` | Soft-deleted accounts |
+| `decision_corrections` | Append-only corrections of write-once payment and subscription decisions, with the resulting access adjustment |
+| `test_version_sections.subjectNameSnapshot` | The subject's name at publication, so published tests keep their labels |
 | `tests.kind` (`TestKind`) | Catalog classification: full, sectional, chapter or practice test (prototype). Metadata only; sections and timing stay on versions |
 
 **Deferred** (not in the initial migration): `email_delivery_attempts` (with notifications), `media_assets` (the architecture says "if useful"), MFA factors (deferred decision 2), the session store table (Milestone 2).

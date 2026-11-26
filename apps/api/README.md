@@ -2,7 +2,7 @@
 
 The NestJS backend for StudyVerse: a modular monolith on PostgreSQL 18 with Prisma 7, as described in [`design/docs/Backend_architecture.md`](../../design/docs/Backend_architecture.md). The data model and migration policy are in [`prisma/README.md`](../../prisma/README.md).
 
-Status: Milestone 1 (backend foundation). The API boots, validates its configuration, logs, handles errors and reports health. Business modules and the initial database migration come next; the migration waits for schema approval.
+Status: Milestone 1 (backend foundation). The API boots, validates its configuration, logs, handles errors and reports health. The initial database migration is generated and tested ([review](../../design/docs/INITIAL_MIGRATION_REVIEW.md)), but not yet applied to any shared environment; applying it waits for approval. Business modules come next.
 
 ## Requirements
 
@@ -40,19 +40,20 @@ No secrets or `.env` files are in the image (`Dockerfile.dockerignore`): configu
 
 ## Scripts
 
-| Command                           | What it does                                          |
-| --------------------------------- | ----------------------------------------------------- |
-| `npm run start:dev`               | Build and run with file watching                      |
-| `npm run build` / `npm start`     | Compile to `dist/` / run the compiled app             |
-| `npm run lint`                    | oxlint with type-aware rules                          |
-| `npm run format` / `format:check` | Prettier                                              |
-| `npm run typecheck`               | `tsc --noEmit` over `src/` and `test/`                |
-| `npm test`                        | Unit and HTTP tests; no database or network needed    |
-| `npm run test:integration`        | Integration tests against a PostgreSQL test database  |
-| `npm run openapi:update`          | Rewrite `openapi.v1.json` after a reviewed API change |
-| `npm run prisma:generate`         | Regenerate the Prisma client                          |
-| `npm run db:validate`             | `prisma validate` and `prisma format --check`         |
-| `npm run db:migrate:*`            | Prisma Migrate; see the policy in `prisma/README.md`  |
+| Command                           | What it does                                                                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run start:dev`               | Build and run with file watching                                                                                                           |
+| `npm run build` / `npm start`     | Compile to `dist/` / run the compiled app                                                                                                  |
+| `npm run lint`                    | oxlint with type-aware rules                                                                                                               |
+| `npm run format` / `format:check` | Prettier                                                                                                                                   |
+| `npm run typecheck`               | `tsc --noEmit` over `src/` and `test/`                                                                                                     |
+| `npm test`                        | Unit and HTTP tests; no database or network needed                                                                                         |
+| `npm run test:integration`        | Integration tests against a PostgreSQL test database                                                                                       |
+| `npm run openapi:update`          | Rewrite `openapi.v1.json` after a reviewed API change                                                                                      |
+| `npm run prisma:generate`         | Regenerate the Prisma client                                                                                                               |
+| `npm run db:validate`             | `prisma validate` and `prisma format --check`                                                                                              |
+| `npm run db:migrate:*`            | Prisma Migrate; see the policy in `prisma/README.md`                                                                                       |
+| `npm run db:initial-migration`    | Rebuild the initial migration from the schema and `extra-constraints.sql` (`-- --check` verifies it); only until that migration is applied |
 
 ## Configuration
 
@@ -120,7 +121,9 @@ One JSON line per request on stdout: `time`, `level`, `service`, `env`, the requ
   - `health`, `database-roles`: readiness and role privileges.
   - `schema/migration`: one migration applied completely, a second deploy is a no-op, no drift, every custom index, CHECK, trigger and function present, the app role has exactly row access to every table.
   - `schema/test-versions`, `schema/attempts`: published-version immutability (including TRUNCATE and cascades), sections and section timers, guest retakes, one in-progress attempt, guest-attempt claims.
-  - `schema/decisions`: write-once payment and subscription decisions, resubmission history, the corrections the model supports.
+  - `schema/decisions`, `schema/corrections`: write-once payment and subscription decisions, resubmission history, append-only decision corrections, revoking a wrongly approved subscription while preserving the access window, period immutability, the deferred revocation-needs-correction check at real `COMMIT`.
+  - `schema/audit-and-bookkeeping`: append-only audit logs (app role and owner role), and `_prisma_migrations` closed to the app role.
+  - `schema/subject-labels`: published tests keep the subject names they were published with.
   - `schema/carts`, `schema/stock`: one active cart per guest, idempotent and concurrent-safe guest cart merge, no overselling under concurrent reservations.
   - `schema/deactivation`, `schema/constraints`: deactivation keeps history, RESTRICT blocks hard deletes, and the remaining CHECKs and unique indexes.
 
