@@ -5,10 +5,13 @@
 -- `prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script`).
 -- Part 2 is prisma/extra-constraints.sql, appended verbatim.
 --
--- Wrapped in one transaction: Prisma doesn't make migrations transactional on
--- PostgreSQL, so without BEGIN/COMMIT a failure would leave a half-built schema.
--- With it, a failure leaves nothing behind (recover with
--- `prisma migrate resolve --rolled-back 20261125070533_init`, then deploy again).
+-- Wrapped in one transaction, because Prisma 7.10.1 doesn't guarantee one. On
+-- PostgreSQL 18.7 it sent a script without dollar-quoted bodies one statement at
+-- a time, each committed on its own, and a script with them (like this one) as a
+-- single message. With BEGIN/COMMIT, a failure rolls back every statement either
+-- way. Prisma then reports "current transaction is aborted" instead of the cause,
+-- which is in the PostgreSQL log, and records the attempt as failed. To recover,
+-- run `prisma migrate resolve --rolled-back 20261125070533_init`, then deploy again.
 
 BEGIN;
 
