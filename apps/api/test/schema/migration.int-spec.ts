@@ -99,17 +99,25 @@ describe("initial migration on PostgreSQL", () => {
     expect(functions.rows.map((r) => r.proname)).toEqual(namesIn(/CREATE FUNCTION "([a-z_]+)"/g));
   });
 
-  it("is owned by the migrator; the app role gets exactly row access to every table", async () => {
-    const { rows } = await db.query<{ table: string; owner: string; dml: boolean; extra: boolean }>(
-      `SELECT tablename AS table, tableowner AS owner,
-              has_table_privilege('studyverse_app', format('public.%I', tablename), 'SELECT,INSERT,UPDATE,DELETE') AS dml,
-              has_table_privilege('studyverse_app', format('public.%I', tablename), 'TRUNCATE')
-                OR has_table_privilege('studyverse_app', format('public.%I', tablename), 'TRIGGER')
-                OR has_table_privilege('studyverse_app', format('public.%I', tablename), 'REFERENCES') AS extra
-       FROM pg_tables WHERE schemaname = 'public'`,
+  it("is owned by the migrator; the app role gets exactly the intended privileges per table", async () => {
+    // has_table_privilege() with a list is true if ANY listed privilege is held, so each
+    // privilege is checked separately and compared as an exact set.
+    const { rows } = await db.query<{ table: string; owner: string; privileges: string[] }>(
+      `SELECT t.tablename AS table, t.tableowner AS owner,
+              ARRAY(SELECT p FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) AS p
+                    WHERE has_table_privilege('studyverse_app', format('public.%I', t.tablename), p)) AS privileges
+       FROM pg_tables t WHERE t.schemaname = 'public'`,
     );
     expect(rows.length).toBe(69); // 68 application tables + _prisma_migrations
     expect(rows.filter((r) => r.owner !== "studyverse_migrator")).toEqual([]);
-    expect(rows.filter((r) => !r.dml || r.extra)).toEqual([]);
+    const ROW_ACCESS = ["SELECT", "INSERT", "UPDATE", "DELETE"];
+    const EXPECTED: Record<string, string[]> = {
+      audit_logs: ["SELECT", "INSERT"], // append-only history
+      _prisma_migrations: [], // migration bookkeeping: migrator only
+    };
+    const unexpected = rows.filter(
+      (r) => JSON.stringify(r.privileges) !== JSON.stringify(EXPECTED[r.table] ?? ROW_ACCESS),
+    );
+    expect(unexpected).toEqual([]);
   });
 });

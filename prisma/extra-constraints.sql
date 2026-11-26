@@ -328,7 +328,7 @@ CREATE TRIGGER "subscription_requests_decision_is_final"
 CREATE FUNCTION "forbid_truncate"() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
-  RAISE EXCEPTION '% holds published or decided records and cannot be truncated', TG_TABLE_NAME
+  RAISE EXCEPTION '% holds protected history and cannot be truncated', TG_TABLE_NAME
     USING ERRCODE = 'integrity_constraint_violation';
 END;
 $$;
@@ -352,3 +352,43 @@ CREATE TRIGGER "payment_submissions_no_truncate"
 CREATE TRIGGER "subscription_requests_no_truncate"
   BEFORE TRUNCATE ON "subscription_requests"
   FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+-- Audit log entries are append-only (Backend_architecture.md §14.2): the API inserts
+-- them, nobody updates or deletes them. This trigger applies to every role, including
+-- the owner, unless the owner deliberately disables it (see "Trust boundary" in
+-- prisma/README.md).
+CREATE FUNCTION "forbid_change"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION '% is append-only: rows cannot be updated or deleted', TG_TABLE_NAME
+    USING ERRCODE = 'integrity_constraint_violation';
+END;
+$$;
+
+CREATE TRIGGER "audit_logs_append_only"
+  BEFORE UPDATE OR DELETE ON "audit_logs"
+  FOR EACH ROW EXECUTE FUNCTION "forbid_change"();
+
+CREATE TRIGGER "audit_logs_no_truncate"
+  BEFORE TRUNCATE ON "audit_logs"
+  FOR EACH STATEMENT EXECUTE FUNCTION "forbid_truncate"();
+
+-- -----------------------------------------------------------------------------
+-- Runtime role privileges.
+-- infra/postgres/init/01-roles-and-databases.sh gives studyverse_app row access
+-- (SELECT, INSERT, UPDATE, DELETE) to every table the migrator creates. Narrow it
+-- where history must not change, and keep the API away from Prisma's migration
+-- bookkeeping, which only the migrator writes. Skipped where the role or table
+-- doesn't exist (for example Prisma's shadow database, which has no
+-- _prisma_migrations table).
+-- -----------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'studyverse_app') THEN
+    REVOKE UPDATE, DELETE, TRUNCATE ON "audit_logs" FROM studyverse_app;
+    IF to_regclass('public._prisma_migrations') IS NOT NULL THEN
+      REVOKE ALL ON "_prisma_migrations" FROM studyverse_app;
+    END IF;
+  END IF;
+END
+$$;
