@@ -99,7 +99,8 @@ describe("audit logs are append-only", () => {
     await app.query("ROLLBACK");
   });
 
-  it("5. the original record is unchanged", async () => {
+  // 5. Runs after the attempts above.
+  it("the original record is unchanged after every attempt", async () => {
     const now = (await app.query("SELECT * FROM audit_logs WHERE id = $1", [entryId])).rows[0];
     expect(now).toEqual(original);
   });
