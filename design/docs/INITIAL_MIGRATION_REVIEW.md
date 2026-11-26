@@ -1,35 +1,55 @@
 # StudyVerse — Initial Migration Review
 
 **Migration:** `prisma/migrations/20261125070533_init/migration.sql`
-**Status:** generated and tested; **not applied** to any persistent or production database. Awaiting approval.
+**Status:** generated and tested on PostgreSQL 18.7, in the official container. **Not applied** to staging, production or any persistent database. Awaiting approval.
 **Branch:** `feature/backend-foundation`
-**Prepared:** 25 November 2026
+**Prepared:** 25 November 2026. **Updated:** 26 November 2026 (append-only audit logs, decision corrections, published subject labels, `_prisma_migrations` privileges, container verification)
 
-This document supports the approval of the initial database migration. It explains the hand-written database rules, summarises the deletion policy, records how the migration was tested, and lists what is still unverified. The full inventory of database objects at the end is generated from PostgreSQL's catalog, not written by hand.
+This document supports the approval of the initial database migration. It covers:
+
+- the hand-written database rules and who can bypass them;
+- the deletion policy;
+- how the migration was tested, including on real containers;
+- what is still unverified.
+
+The inventory of database objects at the end is generated from PostgreSQL's catalog, not written by hand.
 
 ## 1. Files
 
 | File | What it is |
 |---|---|
-| `prisma/migrations/20261125070533_init/migration.sql` | The complete migration (2,257 lines). Part 1: Prisma's generated DDL. Part 2: `extra-constraints.sql`, verbatim. Wrapped in `BEGIN;` … `COMMIT;` |
+| `prisma/migrations/20261125070533_init/migration.sql` | The complete migration (2,527 lines), wrapped in `BEGIN;` … `COMMIT;`. Part 1 is Prisma's generated DDL. Part 2 is `extra-constraints.sql`, verbatim |
 | `prisma/migrations/migration_lock.toml` | Prisma's provider lock (`postgresql`) |
-| `prisma/extra-constraints.sql` | The hand-written rules, the source of Part 2. A unit test fails if the two copies differ |
-| `prisma/schema.prisma` | The Prisma schema the migration was generated from |
+| `prisma/extra-constraints.sql` | The hand-written rules, the source of Part 2 |
+| `prisma/schema.prisma` | The Prisma schema that Part 1 is generated from |
+| `apps/api/scripts/initial-migration.mjs` | Builds the migration from the two files above (`npm run db:initial-migration`). With `-- --check` it fails if the committed migration differs |
 
-**How it was produced:** Prisma 7.10.1 under Node 22.23.5, using `prisma migrate dev --create-only --name init` against an empty development and shadow database. That output is byte-identical to `prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script`, except that command's `CREATE SCHEMA IF NOT EXISTS "public"` preamble. So Part 1 is reproducible from the committed schema with no database. Part 2 was appended verbatim.
+**How it is produced:** `npm run db:initial-migration`, with Prisma 7.10.1 under Node 22.23.5, in four steps:
 
-**Why `BEGIN`/`COMMIT`:** Prisma 7.10.1 doesn't make migrations transactional on PostgreSQL. On 18.7, a migration that failed part-way left its earlier statements applied and was recorded as failed. With the explicit transaction, a failure leaves the database untouched. Recovery is `prisma migrate resolve --rolled-back 20261125070533_init`, then deploying the fixed migration.
+1. Run `prisma migrate diff --from-empty --to-schema ../../prisma/schema.prisma --script`. This needs no database.
+2. Drop that command's `CREATE SCHEMA IF NOT EXISTS "public"` preamble.
+3. Append `extra-constraints.sql` verbatim.
+4. Wrap the result in a transaction.
+
+The first version came from `prisma migrate dev --create-only --name init`, whose output is byte-identical to the diff without that preamble. Two checks keep the migration and its sources in sync: `npm run db:initial-migration -- --check`, and a unit test (`src/database/migrations.spec.ts`) that compares Part 2 with `extra-constraints.sql`. The script exists only until this migration is applied; after that, the migration is frozen.
+
+**Why `BEGIN`/`COMMIT`:** Prisma 7.10.1 doesn't make migrations transactional on PostgreSQL. On 18.7, a migration that failed part-way left its earlier statements applied and was recorded as failed. With the explicit transaction, a failure leaves the database untouched. To recover, run `prisma migrate resolve --rolled-back 20261125070533_init`, then deploy the fixed migration.
 
 ## 2. Hand-written rules (Part 2)
 
-### Triggers (4 functions, 10 triggers)
+### Triggers (9 functions, 19 triggers)
 
 | Function | Triggers | Rule |
 |---|---|---|
-| `guard_published_test_version()` | `test_versions_immutable_after_publish` (BEFORE UPDATE OR DELETE, per row) | Once a version is `PUBLISHED` or `SUPERSEDED`, only the move `PUBLISHED → SUPERSEDED`, `answer_review_release_at` (release or withhold solutions) and `updated_at` may change. It can't be deleted. Any other column change, including moving it to another test or back to `DRAFT`, is refused |
-| `guard_published_test_version_content()` | `test_version_sections_frozen_after_publish`, `test_version_questions_frozen_after_publish` (BEFORE INSERT OR UPDATE OR DELETE, per row) | Sections and questions can only be added, changed or removed while their version is a `DRAFT`. This covers section order, subject, title, instructions and timers, and question assignment, order, prompts, answer keys and marking. When the parent row is already gone, the change is a cascade from deleting a draft version, which is allowed |
+| `guard_published_test_version()` | `test_versions_immutable_after_publish` (BEFORE UPDATE OR DELETE, per row) | Once a version is `PUBLISHED` or `SUPERSEDED`, only three things may change: the move `PUBLISHED → SUPERSEDED`, `answer_review_release_at` (release or withhold solutions) and `updated_at`. The version can't be deleted. Any other column change is refused, including moving it to another test or back to `DRAFT` |
+| `guard_published_test_version_content()` | `test_version_sections_frozen_after_publish`, `test_version_questions_frozen_after_publish` (BEFORE INSERT OR UPDATE OR DELETE, per row) | Sections and questions can only be added, changed or removed while their version is a `DRAFT`. This covers section order, subject, subject-name snapshot, title, instructions and timers, and question assignment, order, prompts, answer keys and marking. A change whose parent row is already gone is a cascade from deleting a draft version, which is allowed |
+| `snapshot_section_subjects_on_publish()` | `test_versions_snapshot_subjects_on_publish` (BEFORE UPDATE OF `status`, per row, when a version leaves `DRAFT`) | Copies each section's current subject name into `subject_name_snapshot` just before the version is frozen. A published test keeps the label it was published with. Drafts have no snapshot and show the current name (`COALESCE(subject_name_snapshot, subjects.name)`) |
 | `guard_final_decision(open_status)` | `payment_submissions_decision_is_final` (`'SUBMITTED'`), `subscription_requests_decision_is_final` (`'PENDING'`) (BEFORE UPDATE OR DELETE, per row) | Once a row leaves its open status it is write-once: nothing but `updated_at` may change. No row can ever be deleted (payment and access evidence) |
-| `forbid_truncate()` | `*_no_truncate` on `test_versions`, `test_version_sections`, `test_version_questions`, `payment_submissions`, `subscription_requests` (BEFORE TRUNCATE, per statement) | Row triggers don't fire on `TRUNCATE`; these refuse it, including when reached through `TRUNCATE … CASCADE`. The app role has no TRUNCATE right at all; this also stops the owner role |
+| `validate_decision_correction()` | `decision_corrections_validate` (BEFORE INSERT, per row) | A correction must match the decision it corrects: an `*_APPROVAL_REVERSED` correction needs an `APPROVED` decision, and an `*_REJECTION_REVERSED` one a `REJECTED` decision. The period must belong to the same learner. `ACCESS_REVOKED` must reference the period that approval created (`source_request_id`), already `REVOKED`. `ACCESS_GRANTED` must reference a new `ACTIVE` period with no source request, activated by the correcting admin |
+| `forbid_change()` | `audit_logs_append_only`, `decision_corrections_append_only` (BEFORE UPDATE OR DELETE, per row) | Append-only: rows can be inserted, never updated or deleted, by any role whose triggers are enabled (including the owner) |
+| `guard_subscription_period()` | `subscription_periods_history_guard` (BEFORE UPDATE OR DELETE, per row) | Access periods are history. They are never deleted, and only `status`, `revoked_at` and `revocation_reason` can change. The only allowed moves are `ACTIVE → EXPIRED`, `ACTIVE → REVOKED` and `EXPIRED → REVOKED`. A revocation can't be changed or undone. The granted window, learner, plan, source request and activator never change |
+| `require_correction_for_revocation()` | `subscription_periods_revocation_needs_correction` (constraint trigger, AFTER UPDATE OF `status`, `DEFERRABLE INITIALLY DEFERRED`) | At commit, a period that became `REVOKED` must be referenced by an `ACCESS_REVOKED` decision correction. Otherwise the whole transaction is refused. So access can't be revoked without a record of who did it and why |
+| `forbid_truncate()` | `*_no_truncate` on `test_versions`, `test_version_sections`, `test_version_questions`, `payment_submissions`, `subscription_requests`, `subscription_periods`, `decision_corrections`, `audit_logs` (BEFORE TRUNCATE, per statement) | Row triggers don't fire on `TRUNCATE`. These triggers refuse it, including when reached through `TRUNCATE … CASCADE`. The app role has no TRUNCATE right at all; these triggers also stop the owner role |
 
 Errors use SQLSTATE `23000` (`integrity_constraint_violation`).
 
@@ -48,25 +68,62 @@ Errors use SQLSTATE `23000` (`integrity_constraint_violation`).
 | `admin_invitations_one_pending_per_email` | pending invitation per normalized email |
 | `addresses_one_default_per_user` | default address per learner |
 
-### CHECK constraints (37)
+### CHECK constraints (42)
 
 | Group | Constraints | Rule |
 |---|---|---|
 | Identity of the owner | `carts_exactly_one_owner_check`, `test_attempts_exactly_one_actor_check` | A cart and an attempt belong to exactly one of a learner or a guest token |
 | Cart merge | `carts_merge_target_check` | `MERGED` exactly when `merged_into_cart_id` is set, and never the cart itself |
 | Decisions | `subscription_requests_decision_check`, `subscription_requests_rejection_reason_check`, `payment_submissions_decision_check`, `payment_submissions_rejection_reason_check` | An approved or rejected row names the reviewer and time (§7.4); a rejection has a reason |
+| Decision corrections | `decision_corrections_target_check`, `decision_corrections_access_effect_check`, `decision_corrections_reason_check` | A correction names exactly the kind of decision it targets: a subscription request or a payment submission. Its access effect fits its kind: approval reversed means `ACCESS_REVOKED`, rejection reversed means `ACCESS_GRANTED` or `NONE`, and a payment correction means `NONE`. It names a period exactly when it has an effect. The reason isn't blank |
+| Access history | `subscription_periods_revocation_check` | A period is `REVOKED` exactly when `revoked_at` and `revocation_reason` are set |
+| Subject labels | `test_version_sections_subject_snapshot_check` | A subject-name snapshot exists only on a section with a subject |
 | Request history | `subscription_request_events_transition_check`, `subscription_request_events_rejection_reason_check` | An event changes the status; a rejection event has a reason |
 | Accounts | `users_deactivation_check` | A `DEACTIVATED` account has `deactivated_at` |
 | Section timers | `attempt_section_states_valid_state_check` | Time used is never negative; a locked section is never active |
-| Security and idempotency | `auth_events_failure_reason_check`, `idempotency_records_completed_check`, `idempotency_records_response_status_check`, `idempotency_records_valid_times_check` | Failed sign-ins have a reason code; completed idempotent requests store a response status (100–599) and completion time; expiry follows creation |
-| Money | `subscription_plans_price_nonnegative_check`, `subscription_requests_amount_nonnegative_check`, `products_valid_price_check`, `orders_nonnegative_amounts_check`, `orders_total_check`, `order_items_valid_quantities_and_amounts_check`, `payment_submissions_amount_nonnegative_check`, `refund_records_amount_nonnegative_check` | Non-negative paise; selling price ≤ MRP; order total = subtotal + shipping − discount; line total = unit price × quantity |
-| Stock and carts | `inventory_balances_valid_quantity_check`, `stock_reservations_valid_quantity_check`, `cart_items_quantity_positive_check` | Non-negative stock, reserved ≤ on hand, positive quantities |
-| Time and sizes | `subscription_plans_duration_positive_check`, `subscription_periods_valid_range_check`, `test_versions_valid_duration_check`, `test_version_sections_valid_values_check`, `test_attempts_valid_time_and_number_check`, `lesson_progress_valid_values_check`, `video_assets_valid_size_and_version_check`, `video_assets_valid_dimensions_check`, `video_processing_jobs_progress_check`, `video_upload_parts_positive_values_check`, `addresses_country_code_check` | Positive durations, sizes, versions and part numbers; valid ranges and percentages; two-letter country code |
+| Security and idempotency | `auth_events_failure_reason_check`, `idempotency_records_completed_check`, `idempotency_records_response_status_check`, `idempotency_records_valid_times_check` | Failed sign-ins have a reason code. Completed idempotent requests store a response status (100–599) and a completion time. Expiry follows creation |
+| Money | `subscription_plans_price_nonnegative_check`, `subscription_requests_amount_nonnegative_check`, `products_valid_price_check`, `orders_nonnegative_amounts_check`, `orders_total_check`, `order_items_valid_quantities_and_amounts_check`, `payment_submissions_amount_nonnegative_check`, `refund_records_amount_nonnegative_check` | Amounts in paise are never negative. Selling price ≤ MRP. Order total = subtotal + shipping − discount. Line total = unit price × quantity |
+| Stock and carts | `inventory_balances_valid_quantity_check`, `stock_reservations_valid_quantity_check`, `cart_items_quantity_positive_check` | Stock is never negative, reserved ≤ on hand, and quantities are positive |
+| Time and sizes | `subscription_plans_duration_positive_check`, `subscription_periods_valid_range_check`, `test_versions_valid_duration_check`, `test_version_sections_valid_values_check`, `test_attempts_valid_time_and_number_check`, `lesson_progress_valid_values_check`, `video_assets_valid_size_and_version_check`, `video_assets_valid_dimensions_check`, `video_processing_jobs_progress_check`, `video_upload_parts_positive_values_check`, `addresses_country_code_check` | Durations, sizes, versions and part numbers are positive. Ranges and percentages are valid. Country codes have two letters |
+
+### Runtime-role privileges
+
+The init script gives `studyverse_app` row access (`SELECT, INSERT, UPDATE, DELETE`) to every table the migrator creates, through `ALTER DEFAULT PRIVILEGES`. Part 2 ends with a `DO` block that narrows this:
+
+| Table | `studyverse_app` | Why |
+|---|---|---|
+| `audit_logs`, `decision_corrections` | `SELECT, INSERT` | Append-only history |
+| `subscription_periods`, `subscription_requests`, `payment_submissions` | `SELECT, INSERT, UPDATE` | Never deleted (evidence and access history) |
+| `_prisma_migrations` | none | Migration bookkeeping belongs to the migrator alone |
+| Every other table | `SELECT, INSERT, UPDATE, DELETE` | Unchanged |
+
+So the app role is stopped twice: it lacks the privilege, and the triggers would refuse the change anyway.
+
+`_prisma_migrations` already exists when the block runs, because Prisma creates it before applying the first migration. The block is skipped where the role doesn't exist, and it skips `_prisma_migrations` where that table doesn't exist (Prisma's shadow database). The catalog result is in "Runtime role privileges" at the end of this document.
+
+### Who these rules stop (trust boundary)
+
+These rules hold against:
+
+- the API's role (`studyverse_app`);
+- application bugs;
+- accidental SQL.
+
+They **don't** hold against the owner role (`studyverse_migrator`) or the PostgreSQL superuser. The owner can disable a trigger, replace a guard function or grant itself privileges. The superuser can also bypass privileges entirely. That is inherent to PostgreSQL, so those credentials are operational secrets:
+
+- the owner role is used only by the migration job, never by the running API;
+- the superuser is used only for administration.
+
+Detecting tampering by those roles needs controls outside the database: restricted access to the credentials, DDL logging, and backups that preserve history. Those belong to the production-hardening phase. The API's role was verified unable to disable a trigger, drop a guard function, grant itself privileges, truncate a protected table, or touch `_prisma_migrations`. The full statement is in `prisma/README.md` ("Trust boundary").
 
 ### Other notable rules (in Part 1, from the schema)
 
-- **Composite foreign key** `test_version_questions(section_id, test_version_id) → test_version_sections(id, test_version_id)`, `ON DELETE NO ACTION`: a question's section must belong to its own version. A section that still has questions can't be deleted; deleting a draft version cascades to both.
-- **Unique keys:** `(user_id, test_id, attempt_number)` and `(guest_token_hash, test_id, attempt_number)` number attempts per actor and test. `(order_id, product_id)` gives one reservation per order and product. `(cart_id, product_id)` gives one cart line per book, which the merge upserts into.
+- **Composite foreign key** `test_version_questions(section_id, test_version_id) → test_version_sections(id, test_version_id)`, `ON DELETE NO ACTION`: a question's section must belong to its own version. A section that still has questions can't be deleted. Deleting a draft version cascades to both.
+- **Unique keys:**
+  - `(user_id, test_id, attempt_number)` and `(guest_token_hash, test_id, attempt_number)` number attempts per actor and test;
+  - `(order_id, product_id)` gives one reservation per order and product;
+  - `(cart_id, product_id)` gives one cart line per book, which the merge upserts into;
+  - `decision_corrections.subscription_request_id`, `.payment_submission_id` and `.subscription_period_id` allow at most one correction per decision and per period.
 
 ## 3. Foreign-key deletion policy
 
@@ -74,99 +131,136 @@ Accounts are deactivated, never hard-deleted by the application. Foreign keys ma
 
 | Area | Delete behaviour |
 |---|---|
-| **Financial** | `orders.user_id`, `payment_submissions.order_id` and `.reviewed_by_id`, `refund_records.order_id` and `.recorded_by_id`, `stock_reservations`, `inventory_movements.product_id` and `.actor_user_id`, `order_items.product_id`: **RESTRICT**. Payment submissions and decided requests also can't be deleted at all (trigger) |
-| **Access control and subscriptions** | `subscription_requests.user_id` and `.reviewed_by_id`, `subscription_periods.user_id` and `.activated_by_id`, `user_roles.assigned_by`, `user_permissions.granted_by_id`, `admin_invitations.invited_by_id`: **RESTRICT**. A learner's own `user_roles`/`user_permissions` rows **CASCADE** (current assignments, not history) |
-| **Audit and history** | `audit_logs.actor_user_id`, `order_events.actor_user_id`, `subscription_request_events.actor_user_id`, `result_release_events.actor_user_id`, `cancellation_requests`/`return_requests` requester and reviewer, `test_attempts.user_id`: **RESTRICT** |
-| **Account-owned data** | credentials, OAuth links, auth tokens, user sessions, addresses, carts, notifications, lesson progress: **CASCADE** |
-| **Incidental metadata** (17 SET NULL in total) | course/video authorship, invitation acceptor, last settings editor, playback-session user, learner on auth events, plus non-user links: course preview lesson, active video asset, last-watched asset, order address (the order keeps `address_snapshot`), product category/subject, refund→return request, period→source request, question→bank source (refused anyway once published), test→active version |
+| **Financial** | **RESTRICT**: `orders.user_id`, `payment_submissions.order_id` and `.reviewed_by_id`, `decision_corrections.payment_submission_id`, `refund_records.order_id` and `.recorded_by_id`, `stock_reservations`, `inventory_movements.product_id` and `.actor_user_id`, `order_items.product_id`. Payment submissions and decided requests also can't be deleted at all (privilege and trigger) |
+| **Access control and subscriptions** | **RESTRICT**: `subscription_requests.user_id` and `.reviewed_by_id`, `subscription_periods.user_id`, `.activated_by_id` and `.source_request_id`, `decision_corrections.subscription_request_id` and `.subscription_period_id`, `user_roles.assigned_by`, `user_permissions.granted_by_id`, `admin_invitations.invited_by_id`. **CASCADE**: a learner's own `user_roles` and `user_permissions` rows (current assignments, not history) |
+| **Audit and history** | **RESTRICT**: `audit_logs.actor_user_id`, `decision_corrections.corrected_by_id`, `order_events.actor_user_id`, `subscription_request_events.actor_user_id`, `result_release_events.actor_user_id`, `cancellation_requests` and `return_requests` requester and reviewer, `test_attempts.user_id` |
+| **Account-owned data** | **CASCADE**: credentials, OAuth links, auth tokens, user sessions, addresses, carts, notifications, lesson progress |
+| **Incidental metadata** | **SET NULL** (16 in total). Links to users: course and video authorship, invitation acceptor, last settings editor, playback-session user, learner and session on auth events. Other links: course preview lesson, active video asset, last-watched asset, order address (the order keeps `address_snapshot`), product category and subject, refund → return request, question → bank source (refused anyway once published), test → active version |
 
-Totals: 51 RESTRICT, 38 CASCADE, 17 SET NULL, 1 NO ACTION.
+Totals: 56 RESTRICT, 38 CASCADE, 16 SET NULL, 1 NO ACTION.
 
 ## 4. Behaviour verified, by area
 
-All on **PostgreSQL 18.7**, in `apps/api/test/schema/*.int-spec.ts`. These run in CI's `api` job, against a database migrated from scratch by `prisma migrate deploy`, as the app role.
+All behaviour below was verified on **PostgreSQL 18.7**, by the suites in `apps/api/test/schema/*.int-spec.ts`. They run as the app role, against a database migrated from scratch by `prisma migrate deploy`. Owner-role cases run as the migrator. CI's `api` job runs them on every pull request.
 
 | Area | What is tested |
 |---|---|
-| **Published test versions** | 20 kinds of change refused on a published version (sections, order, subjects, timers, question assignment, answer keys, marking, timing, release mode, attempt limit, moving, reopening, deleting); cascades from tests, subjects and the question bank refused; TRUNCATE refused for the owner role; bank edits leave the snapshot unchanged; releasing solutions and superseding work; drafts fully editable |
-| **Sections and section timers** | Ordered, subject-linked, individually timed sections with assigned questions; cross-version assignment refused; time used, locking, one active section, no locked-and-active section |
-| **Guest demo attempts and retakes** | Retakes numbered per guest and test; numbers can't repeat; guests are independent; guest attempts can be claimed and renumbered after a learner's own |
-| **One active attempt** | One `IN_PROGRESS` attempt per learner and per guest per test; a retake after submission is allowed; other tests are independent |
-| **Subscription and payment decisions** | Reviewer, time and reason required; decided rows write-once and undeletable; resubmission keeps every decision; reviewer can't be deleted; request event rules; the corrections supported today (manual activation; revoking a period while the approved request stays) |
-| **Stock reservations** | Reserved can never exceed on hand, even with an unguarded update; one reservation per order and product; of two concurrent reservations of the last copy exactly one succeeds (two real sessions, the second verified blocked) |
-| **Cart merging** | One active cart per guest and learner; history kept; MERGED consistency; larger quantity wins; idempotent on retry; a concurrent double merge waits then does nothing; a failed merge rolls back fully |
-| **Audit and actor references** | RESTRICT on actors blocks hard deletes (audit logs, decisions, role grants, attempts, orders, subscriptions); deactivation leaves all history in place |
-| **Migration workflow** | One migration applied completely; second deploy is a no-op; `migrate status` up to date; no drift; every custom index, CHECK, trigger and function present; tables owned by the migrator; the app role has exactly row access to every table |
+| **Published test versions** | 20 kinds of change are refused on a published version: sections, order, subjects, timers, question assignment, answer keys, marking, timing, release mode, attempt limit, moving, reopening and deleting. Cascades from tests, subjects and the question bank are refused. TRUNCATE is refused for the owner role. Bank edits leave the snapshot unchanged. Releasing solutions and superseding work. Drafts are fully editable |
+| **Published subject labels** | Drafts show the current subject name, and publication snapshots it. Renaming a subject afterwards doesn't relabel a published or superseded test, while a new version uses the new name. Section order and subject links stay intact. A published snapshot can't be changed, and a snapshot without a subject is refused |
+| **Sections and section timers** | Sections are ordered, subject-linked and individually timed, with assigned questions. Cross-version assignment is refused. Covers time used, locking, one active section, and no section both locked and active |
+| **Guest demo attempts and retakes** | Retakes are numbered per guest and test, and numbers can't repeat. Guests are independent. Guest attempts can be claimed and renumbered after a learner's own |
+| **One active attempt** | One `IN_PROGRESS` attempt per learner, and per guest, per test. A retake after submission is allowed. Other tests are independent |
+| **Subscription and payment decisions** | Reviewer, time and reason are required. Decided rows are write-once. No submission or request can be deleted: the app role has no privilege, and the trigger refuses the owner. TRUNCATE is refused. A resubmission keeps every decision. A reviewer can't be deleted. Request events follow their rules |
+| **Decision corrections** | A wrong approval that already granted access is corrected: the period is revoked, who, when and why are recorded, and the original decision and the granted window stay intact. A revocation with no correction is refused at a real `COMMIT`. A correction must revoke the period that approval created, and its kind must match the original decision. One correction per decision, with a non-blank reason. A wrong rejection is corrected with a new period activated by the correcting admin, and the request stays `REJECTED`. A payment correction is a record only: no access change, and the payment decision is untouched. Corrections are append-only for the app role (privilege) and the owner (trigger). A period's window, learner and source never change. The allowed status moves are enforced, and a revocation is final |
+| **Audit logs** | Tested as the real roles. The app role inserts an entry and can read it, but is refused UPDATE, DELETE and TRUNCATE. The owner is refused by the trigger. The app role can't disable the trigger, drop the function or grant itself privileges. The entry is byte-for-byte unchanged afterwards. Its actor can't be deleted |
+| **Migration bookkeeping** | `_prisma_migrations` is owned by the migrator. The app role can't read, insert, update, delete or truncate it. The migrator still reads it, and `migrate deploy` and `migrate status` keep working |
+| **Stock reservations** | Reserved can never exceed on hand, even with an unguarded update. One reservation per order and product. Of two concurrent reservations of the last copy, exactly one succeeds (two real sessions, the second verified blocked) |
+| **Cart merging** | One active cart per guest and per learner. History is kept, and `MERGED` stays consistent. The larger quantity wins. A retry changes nothing. A concurrent double merge waits, then does nothing. A failed merge rolls back fully |
+| **Actor references** | RESTRICT on actors blocks hard deletes (audit logs, decisions, corrections, role grants, attempts, orders, subscriptions). Deactivation leaves all history in place |
+| **Migration workflow** | One migration is applied completely, and a second deploy is a no-op. `migrate status` is up to date, with no drift. Every custom index, CHECK, trigger and function is present. Every table is owned by the migrator, and the app role has exactly the privilege set intended for each table |
 
 ## 5. PostgreSQL 18.7 test commands and results
 
-**Environment.** PostgreSQL **18.7** server binaries from `embedded-postgres@18.7.0-beta.19`, listening on `127.0.0.1`. The npm wrapper is a beta; `postgres --version` reports `PostgreSQL 18.7`. Roles and databases were created by `infra/postgres/init/01-roles-and-databases.sh`. No `psql` binary is available here, so the script ran through a small stand-in that implements the `psql` features it uses (variables, `:'name'` quoting, one statement at a time, stop on error). The runtime was Node **22.23.5**: the official build, SHA-256 verified, used through `PATH` without changing the machine's default Node. Docker's engine is unresponsive on this machine, so the official `postgres:18.7-trixie` image did not run (section 6).
+**Environment.**
 
-Migration workflow, from `apps/api`, with `DATABASE_MIGRATION_URL` pointing at `studyverse` as `studyverse_migrator`:
+- The **official `postgres:18.7-trixie` image**, started with `infra/compose.yaml` from an empty volume, on Docker Desktop (linux/arm64). `select version()`: `PostgreSQL 18.7 (Debian 18.7-1.pgdg13+5)`.
+- The image's entrypoint ran `infra/postgres/init/01-roles-and-databases.sh` with its real `psql`.
+- The tests and the Prisma CLI ran on Node **22.23.5**, the official build, SHA-256 verified.
+
+(An earlier revision of this document reported results from PostgreSQL 18.7 binaries outside Docker, with a stand-in for `psql`, because Docker wasn't responding at the time. All the results below come from the container, except the one row marked otherwise.)
+
+**Migration workflow in containers** (Compose `app` profile, with a fresh project and fresh generated passwords):
+
+| Step | Result |
+|---|---|
+| `docker compose up -d --wait postgres` | Healthy. The log shows `running /docker-entrypoint-initdb.d/01-roles-and-databases.sh`, then `studyverse roles and databases created` |
+| Roles | `studyverse_migrator` and `studyverse_app`: not superuser, no CREATEDB, no CREATEROLE. `studyverse`, `studyverse_test` and `studyverse_shadow` are owned by the migrator, with no PUBLIC connect. The default privileges give the app role `arwd` on tables and `rU` on sequences |
+| `docker compose --profile app up -d --build --wait api` | Both images built. The `migrate` container printed `Applying migration 20261125070533_init`, then `All migrations have been successfully applied.`, and exited 0. The API then became healthy |
+| `docker compose run --rm migrate` (second deploy) | `No pending migrations to apply.`, exit 0 |
+| `prisma migrate status` in the migrator image | `Database schema is up to date!` |
+| Catalog of the migrated `studyverse` database | 70 tables, all owned by `studyverse_migrator`. App-role privileges as in section 2 |
+| App role, `psql` in the container: `DELETE`/`TRUNCATE audit_logs`, `UPDATE`/`SELECT _prisma_migrations` | Each refused with `permission denied for table …` |
+
+The first build attempt failed with `ECONNRESET` while `@prisma/engines` downloaded its engine binaries during `npm ci`. A direct download of the same engine from a container then took 2.3 s, and the retry built cleanly, so this was a transient network error. If it recurs in CI, the fix is a build retry or a cached engine, not a Dockerfile change.
+
+**Migration workflow, Prisma commands** (from `apps/api`, with the migrator URL):
 
 | Command | Result |
 |---|---|
-| `npx prisma migrate dev --create-only --name init` | Created `20261125070533_init` without applying it |
-| `npx prisma migrate diff --from-empty --to-schema ../../prisma/schema.prisma --script` | Same DDL as the generated migration (only the `CREATE SCHEMA` preamble differs) |
-| `npx prisma migrate deploy` | `All migrations have been successfully applied.` |
+| `npm run db:initial-migration -- --check` | `20261125070533_init/migration.sql is reproducible from the repository.` |
+| `npx prisma migrate deploy` (as the integration global setup, on an emptied `studyverse_test`) | Applied |
 | `npx prisma migrate deploy` (again) | `No pending migrations to apply.` |
 | `npx prisma migrate status` | `Database schema is up to date!` |
 | `npx prisma migrate diff --from-config-datasource --to-schema ../../prisma/schema.prisma --script --exit-code` | Exit 0, `-- This is an empty migration.` (no drift) |
-| `npx prisma migrate dev --create-only --name should_not_exist` | Only an empty migration (history replayed in the shadow database matches the schema); deleted |
-| Failing migration without / with `BEGIN`…`COMMIT` (scratch) | Without: earlier statements stayed applied. With: nothing applied |
+| `npx prisma migrate dev --create-only` (shadow database `studyverse_shadow`, same image, an earlier throwaway Compose project) | Only an empty migration, so the history replayed in the shadow database matches the schema, `DO` block included. The empty migration was deleted |
+| A failing migration without, then with, `BEGIN`…`COMMIT` (scratch; run on 25 November on PostgreSQL 18.7 binaries outside Docker, not repeated in the container) | Without: earlier statements stayed applied. With: nothing was applied |
 
-Test suites, from `apps/api`, at commit `b3c1ddf` (Node 22.23.5, npm 10.9.9):
+**Test suites** at commit `9140c08` (Node 22.23.5, npm 10.9.9):
 
 | Command | Result |
 |---|---|
-| `npm ci` | Exit 0 from a clean `node_modules` (postinstall generates the Prisma client) |
-| `npm run test:integration` (`TEST_DATABASE_URL`/`TEST_DATABASE_MIGRATION_URL` → `studyverse_test`) | **107 passed**, 0 failed, 10 files. The global setup emptied the database and ran `prisma migrate deploy` first |
-| `npm test` | **77 passed**, 0 failed, 11 files (includes the migration-shape and runtime-version checks) |
-| `npm run lint` / `format:check` / `typecheck` / `db:validate` / `build` | All exit 0; lint reports 0 findings |
+| `npm run test:integration`, with `TEST_DATABASE_URL` (app role) and `TEST_DATABASE_MIGRATION_URL` (migrator) pointing at the container's `studyverse_test` | **130 passed**, 0 failed, 13 files |
+| `npm test` | **77 passed**, 0 failed |
+| `npm run lint` / `format:check` / `typecheck` / `db:validate` / `build` | All exit 0. Lint reports no findings |
 
-The frontend is unaffected at the same commit: lint and type-check exit 0, Vitest 488 of 488, Chromium E2E 230 of 230 (production build).
+The final branch head is verified again from a clean install in the pull request description.
 
-## 6. Not yet verified (blocked)
+## 6. Container verification (Docker)
 
-Docker Desktop's engine on the development machine accepts connections but never answers, so nothing involving a container has run. These are **unverified**:
+Run on real containers with Docker Desktop, using the Compose stack in `infra/compose.yaml` and the `app` profile. Throwaway project, fresh volume and freshly generated passwords. Nothing was replayed outside Docker.
 
-| Check | How it will be verified |
+| Check | Result |
 |---|---|
-| The official `postgres:18.7-trixie` image starts with the Compose volume layout (`/var/lib/postgresql`) and runs the init script with real `psql` | CI `api` job (service container plus real `psql`) and CI `container` job; locally `docker compose -f infra/compose.yaml up -d` |
-| The migration deploys inside the `migrate` container | CI `container` job |
-| The API image builds, starts as `node`, is healthy, contains no env files or credentials, and exits 0 on `docker stop` | CI `container` job; locally `docker compose -f infra/compose.yaml --profile app up -d --build` |
-| GitHub Actions passes | Not run yet: the workflows run on a pull request into `develop` |
+| PostgreSQL container starts | `postgres:18.7-trixie`, healthy, bound to `127.0.0.1` only |
+| The init script runs with real `psql` | Yes, from the official entrypoint (section 5) |
+| Roles and permissions | As intended (section 5) |
+| The migration job completes | `migrate` exited 0. A second run is a no-op |
+| The API image builds | Yes. Runtime image 121 MB. Migrator image 405 MB (it carries the Prisma CLI and the migrations) |
+| The API starts and becomes ready | Container `healthy`. `/api/v1/health/live` returns 200, and `/api/v1/health/ready` returns 200 with `database: up`. An unknown route returns a Problem Details 404. `/api/docs` returns 404 because Swagger is off in production |
+| The API connects as the restricted role | The only database connection from the API container's address is `studyverse_app` |
+| Image hardening | Runs as `node` (uid 1000). It contains only `dist`, production `node_modules` and `package.json`: no source, no Prisma CLI. Its files can't be written (`touch /app/x` → permission denied). The root filesystem is read-only, all capabilities are dropped, and `no-new-privileges` is set |
+| No secrets in the image | No `.env`, `.env.*`, `*.pem` or key files. The image environment has only `PATH`, `NODE_VERSION`, `YARN_VERSION`, `NODE_ENV`, `HOST` and `PORT`. None of the generated passwords appear in `docker history`, image config or build output. (No local `.env` files existed to leak) |
+| No secrets in logs | None of the three passwords, the word "password" or a connection URL appears in any container's logs |
+| Graceful shutdown | `docker stop`: 0.2 s, exit code 0. The log shows `Received SIGTERM; shutting down`, then `Shutdown complete`, 9 ms apart. PID 1 is `node`. Afterwards no `studyverse_app` connection remains, and PostgreSQL logged no unexpected disconnects. `docker compose stop api` after a restart: 0.24 s, exit 0 |
 
-What did run in place of the container: the Dockerfile's steps replayed outside Docker under Node 22.23.5. The context was filtered like the dockerignore (no env files), followed by `npm ci`, the build, the migrator's `prisma migrate deploy`, and the runtime's production-only install. The resulting runtime layout served live, ready (PostgreSQL 18.7), docs and Problem Details 404s, passed the `HEALTHCHECK` command, and exited 0 on SIGTERM. That checks the Dockerfile's logic, not the image.
+**Still unverified:** GitHub Actions. The workflows (`backend-tests.yml` with its `api` and `container` jobs) run on a pull request into `develop`, and their results are reported on that pull request.
 
 ## 7. Limitations, deferred decisions and risks
 
-1. **Correcting a wrong approval is undefined (product decision needed).** Corrections of rejections are supported (resubmission, manual activation). For a wrong approval there is no `revoked_by` on subscription periods, no correction record for payments, and `audit_logs` rows can be changed by the app role. A smallest change is proposed in `prisma/README.md` ("Correcting payment and subscription decisions"). If it's approved before this migration is applied, the initial migration will be regenerated to include it.
-2. **Rules the database can't enforce** stay in services and must be tested there: preview lesson, active video asset and active test version belonging to their parent; attempt question and section states belonging to the attempt's version; every section of a section-timed version having a duration; the guest-attempt claim and cart-merge procedures (`prisma/README.md`, "Invariants enforced in application services").
-3. **Deactivation is enforced by the database only for history.** Refusing sign-in, revoking sessions and invalidating tokens are Milestone 2 requirements (listed in `prisma/README.md`).
-4. **Personal-data retention is deferred.** Deactivation isn't deletion; a retention and deletion policy is required before production. Nothing deletes or anonymizes data automatically.
-5. **Trigger protections stop the API's role, accidents and application bugs, not a malicious database owner.** The owner role can disable or drop triggers. The app role can't (verified).
-6. **Shared reference data isn't snapshotted.** Renaming a subject or a test changes how published sections and tests are labelled; their content and structure don't change. Snapshot the subject name on sections if exam records must show historical names.
-7. **The app role can write `_prisma_migrations`.** The init script's default privileges cover every table the migrator creates, including Prisma's bookkeeping table. Low risk. It can be closed by revoking those privileges after the first deploy.
-8. **Every future migration must include `BEGIN`/`COMMIT`.** The convention is documented and checked by a test for the initial migration only.
-9. **Return requests aren't write-once.** Deleting one would set `refund_records.return_request_id` to NULL. Deferred to the bookstore milestone, where return workflows are designed.
-10. **Node 22 reaches end of life on 30 April 2027.** Plan the move to Node 24 before production.
-11. **The `app` Compose profile migrates the local `studyverse` database.** Don't run it against data you want to keep until this migration is approved.
+1. **Refunds aren't defined.** A payment correction is a record only: it changes no order, stock, refund or access record. What happens to the order and the money is a bookstore policy decision, documented as open in `prisma/README.md` ("Correcting payment and subscription decisions").
+2. **Corrections have deliberate limits.** At most one correction per decision, so correcting a correction needs a separately designed process. Renewal periods stacked after a revoked period keep their dates. The audit-log entry for a correction is written by the service in the same transaction, but the database doesn't require it; the database does require the correction record.
+3. **Trust boundary.** The triggers stop the API's role, application bugs and accidents, not whoever holds the owner or superuser credentials (section 2). Tamper detection belongs to production hardening.
+4. **New tables get full row access by default.** The init script's default privileges give the app role `SELECT, INSERT, UPDATE, DELETE` on every new table. A future migration that adds history must revoke what it shouldn't have, as Part 2 does. The privilege test in `schema/migration.int-spec.ts` pins the table count and each table's privilege set, so every new table fails it until someone reviews its privileges and updates the test. The `DO` block names the role `studyverse_app`: a deployment that uses another role name skips it and must apply the same revokes.
+5. **Rules the database can't enforce** stay in services and must be tested there:
+   - a preview lesson, active video asset or active test version belongs to its parent;
+   - an attempt's question and section states belong to the attempt's version;
+   - every section of a section-timed version has a duration;
+   - the guest-attempt claim and cart-merge procedures.
+
+   See "Invariants enforced in application services" in `prisma/README.md`.
+6. **The database enforces deactivation only for history.** Refusing sign-in, revoking sessions and invalidating tokens are Milestone 2 requirements (listed in `prisma/README.md`).
+7. **Personal-data retention is deferred.** Deactivation isn't deletion. A retention and deletion policy is required before production. Nothing deletes or anonymizes data automatically.
+8. **Test titles aren't snapshotted.** Subject names on published sections are. Renaming a test changes how its past attempts are labelled; their content, sections and subject labels don't change.
+9. **Every future migration must include `BEGIN`/`COMMIT`.** The convention is documented, but a test checks it for the initial migration only.
+10. **Return requests aren't write-once.** Deleting one would set `refund_records.return_request_id` to NULL. Deferred to the bookstore milestone, where return workflows are designed.
+11. **Node 22 reaches end of life on 30 April 2027.** Plan the move to Node 24 before production.
+12. **The `app` Compose profile migrates the local `studyverse` database.** Don't run it against data you want to keep until this migration is approved.
 
 ## 8. Inventory
 
 <!-- generated:inventory:start (PostgreSQL 18.7; do not edit by hand) -->
 
-Generated from the catalog of a database migrated with `20261125070533_init` on PostgreSQL 18.7.
+Generated from the catalog of a database migrated with `20261125070533_init` on PostgreSQL 18.7 (the official `postgres:18.7-trixie` image, migrated by the Compose `migrate` job).
 
 | Object | Count |
 |---|---|
-| Tables (plus `_prisma_migrations`) | 68 |
-| Enums | 43 |
-| Foreign keys | 107 (38 CASCADE, 17 SET NULL, 51 RESTRICT, 1 NO ACTION) |
-| Indexes | 206: 68 primary keys, 49 unique, 10 partial unique, 79 non-unique |
-| CHECK constraints | 37 |
-| Triggers | 10 |
+| Tables (plus `_prisma_migrations`) | 69 |
+| Enums | 45 |
+| Foreign keys | 111 (56 RESTRICT, 38 CASCADE, 16 SET NULL, 1 NO ACTION) |
+| Indexes | 211: 69 primary keys, 52 unique, 10 partial unique, 80 non-unique |
+| CHECK constraints | 42 |
+| Triggers | 19 (1 deferred constraint trigger) |
+| Functions | 9 |
 
 ### Tables
 
@@ -187,6 +281,7 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `course_modules` | 7 |
 | `course_subjects` | 2 |
 | `courses` | 13 |
+| `decision_corrections` | 9 |
 | `exam_categories` | 7 |
 | `hls_packages` | 8 |
 | `idempotency_records` | 14 |
@@ -226,7 +321,7 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `test_exam_categories` | 2 |
 | `test_subjects` | 2 |
 | `test_version_questions` | 11 |
-| `test_version_sections` | 7 |
+| `test_version_sections` | 8 |
 | `test_versions` | 13 |
 | `tests` | 11 |
 | `user_credentials` | 6 |
@@ -252,7 +347,9 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `AuthTokenPurpose` | EMAIL_VERIFICATION, PASSWORD_RESET |
 | `CancellationRequestStatus` | REQUESTED, APPROVED, REJECTED, COMPLETED |
 | `CartStatus` | ACTIVE, CONVERTED, ABANDONED, MERGED |
+| `CorrectionAccessEffect` | NONE, ACCESS_REVOKED, ACCESS_GRANTED |
 | `CourseStatus` | DRAFT, PUBLISHED, ARCHIVED |
+| `DecisionCorrectionKind` | SUBSCRIPTION_APPROVAL_REVERSED, SUBSCRIPTION_REJECTION_REVERSED, PAYMENT_APPROVAL_REVERSED, PAYMENT_REJECTION_REVERSED |
 | `HlsPackageStatus` | STAGING, VERIFYING, VERIFIED, FAILED, RETIRED |
 | `IdempotencyStatus` | IN_PROGRESS, COMPLETED |
 | `InventoryMovementType` | STOCK_ADDED, DAMAGED_REMOVED, CORRECTION, RESERVED, RESERVATION_RELEASED, SOLD, RETURNED, REPLACEMENT_ISSUED |
@@ -315,10 +412,14 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `course_exam_categories` | `course_exam_categories_course_id_fkey` | `courses` (course_id → id) | CASCADE |
 | `course_exam_categories` | `course_exam_categories_exam_category_id_fkey` | `exam_categories` (exam_category_id → id) | RESTRICT |
 | `course_modules` | `course_modules_course_id_fkey` | `courses` (course_id → id) | CASCADE |
-| `course_subjects` | `course_subjects_course_id_fkey` | `courses` (course_id → id) | CASCADE |
-| `course_subjects` | `course_subjects_subject_id_fkey` | `subjects` (subject_id → id) | RESTRICT |
 | `courses` | `courses_created_by_id_fkey` | `users` (created_by_id → id) | SET NULL |
 | `courses` | `courses_preview_lesson_id_fkey` | `lessons` (preview_lesson_id → id) | SET NULL |
+| `course_subjects` | `course_subjects_course_id_fkey` | `courses` (course_id → id) | CASCADE |
+| `course_subjects` | `course_subjects_subject_id_fkey` | `subjects` (subject_id → id) | RESTRICT |
+| `decision_corrections` | `decision_corrections_corrected_by_id_fkey` | `users` (corrected_by_id → id) | RESTRICT |
+| `decision_corrections` | `decision_corrections_payment_submission_id_fkey` | `payment_submissions` (payment_submission_id → id) | RESTRICT |
+| `decision_corrections` | `decision_corrections_subscription_period_id_fkey` | `subscription_periods` (subscription_period_id → id) | RESTRICT |
+| `decision_corrections` | `decision_corrections_subscription_request_id_fkey` | `subscription_requests` (subscription_request_id → id) | RESTRICT |
 | `hls_packages` | `hls_packages_video_asset_id_fkey` | `video_assets` (video_asset_id → id) | CASCADE |
 | `inventory_balances` | `inventory_balances_product_id_fkey` | `products` (product_id → id) | RESTRICT |
 | `inventory_movements` | `inventory_movements_actor_user_id_fkey` | `users` (actor_user_id → id) | RESTRICT |
@@ -362,7 +463,7 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `store_settings` | `store_settings_updated_by_id_fkey` | `users` (updated_by_id → id) | SET NULL |
 | `subscription_periods` | `subscription_periods_activated_by_id_fkey` | `users` (activated_by_id → id) | RESTRICT |
 | `subscription_periods` | `subscription_periods_plan_id_fkey` | `subscription_plans` (plan_id → id) | RESTRICT |
-| `subscription_periods` | `subscription_periods_source_request_id_fkey` | `subscription_requests` (source_request_id → id) | SET NULL |
+| `subscription_periods` | `subscription_periods_source_request_id_fkey` | `subscription_requests` (source_request_id → id) | RESTRICT |
 | `subscription_periods` | `subscription_periods_user_id_fkey` | `users` (user_id → id) | RESTRICT |
 | `subscription_request_events` | `subscription_request_events_actor_user_id_fkey` | `users` (actor_user_id → id) | RESTRICT |
 | `subscription_request_events` | `subscription_request_events_request_id_fkey` | `subscription_requests` (request_id → id) | RESTRICT |
@@ -376,15 +477,15 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `test_courses` | `test_courses_test_id_fkey` | `tests` (test_id → id) | CASCADE |
 | `test_exam_categories` | `test_exam_categories_exam_category_id_fkey` | `exam_categories` (exam_category_id → id) | RESTRICT |
 | `test_exam_categories` | `test_exam_categories_test_id_fkey` | `tests` (test_id → id) | CASCADE |
+| `tests` | `tests_active_version_id_fkey` | `test_versions` (active_version_id → id) | SET NULL |
 | `test_subjects` | `test_subjects_subject_id_fkey` | `subjects` (subject_id → id) | RESTRICT |
 | `test_subjects` | `test_subjects_test_id_fkey` | `tests` (test_id → id) | CASCADE |
 | `test_version_questions` | `test_version_questions_section_id_test_version_id_fkey` | `test_version_sections` (section_id, test_version_id → id, test_version_id) | NO ACTION |
 | `test_version_questions` | `test_version_questions_source_question_id_fkey` | `question_bank_items` (source_question_id → id) | SET NULL |
 | `test_version_questions` | `test_version_questions_test_version_id_fkey` | `test_versions` (test_version_id → id) | CASCADE |
+| `test_versions` | `test_versions_test_id_fkey` | `tests` (test_id → id) | RESTRICT |
 | `test_version_sections` | `test_version_sections_subject_id_fkey` | `subjects` (subject_id → id) | RESTRICT |
 | `test_version_sections` | `test_version_sections_test_version_id_fkey` | `test_versions` (test_version_id → id) | CASCADE |
-| `test_versions` | `test_versions_test_id_fkey` | `tests` (test_id → id) | RESTRICT |
-| `tests` | `tests_active_version_id_fkey` | `test_versions` (active_version_id → id) | SET NULL |
 | `user_credentials` | `user_credentials_user_id_fkey` | `users` (user_id → id) | CASCADE |
 | `user_permissions` | `user_permissions_granted_by_id_fkey` | `users` (granted_by_id → id) | RESTRICT |
 | `user_permissions` | `user_permissions_permission_id_fkey` | `permissions` (permission_id → id) | CASCADE |
@@ -451,6 +552,11 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `courses` | `courses_preview_lesson_id_key` | UNIQUE (preview_lesson_id) |
 | `courses` | `courses_slug_key` | UNIQUE (slug) |
 | `courses` | `courses_status_published_at_idx` | (status, published_at) |
+| `decision_corrections` | `decision_corrections_corrected_by_id_created_at_idx` | (corrected_by_id, created_at) |
+| `decision_corrections` | `decision_corrections_payment_submission_id_key` | UNIQUE (payment_submission_id) |
+| `decision_corrections` | `decision_corrections_pkey` | UNIQUE (id) |
+| `decision_corrections` | `decision_corrections_subscription_period_id_key` | UNIQUE (subscription_period_id) |
+| `decision_corrections` | `decision_corrections_subscription_request_id_key` | UNIQUE (subscription_request_id) |
 | `exam_categories` | `exam_categories_pkey` | UNIQUE (id) |
 | `exam_categories` | `exam_categories_slug_key` | UNIQUE (slug) |
 | `hls_packages` | `hls_packages_pkey` | UNIQUE (id) |
@@ -622,6 +728,9 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `cart_items` | `cart_items_quantity_positive_check` | CHECK ((quantity > 0)) |
 | `carts` | `carts_exactly_one_owner_check` | CHECK ((num_nonnulls(user_id, guest_token_hash) = 1)) |
 | `carts` | `carts_merge_target_check` | CHECK ((((status = 'MERGED'::"CartStatus") = (merged_into_cart_id IS NOT NULL)) AND ((merged_into_cart_id IS NULL) OR (merged_into_cart_id <> id)))) |
+| `decision_corrections` | `decision_corrections_access_effect_check` | CHECK ((((access_effect = 'NONE'::"CorrectionAccessEffect") = (subscription_period_id IS NULL)) AND CASE kind WHEN 'SUBSCRIPTION_APPROVAL_REVERSED'::"DecisionCorrectionKind" THEN (access_effect = 'ACCESS_REVOKED'::"CorrectionAccessEffect") WHEN 'SUBSCRIPTION_REJECTION_REVERSED'::"DecisionCorrectionKind" THEN (access_effect = ANY (ARRAY['ACCESS_GRANTED'::"CorrectionAccessEffect", 'NONE'::"CorrectionAccessEffect"])) ELSE (access_effect = 'NONE'::"CorrectionAccessEffect") END)) |
+| `decision_corrections` | `decision_corrections_reason_check` | CHECK ((length(btrim(reason)) > 0)) |
+| `decision_corrections` | `decision_corrections_target_check` | CHECK ((((kind = ANY (ARRAY['SUBSCRIPTION_APPROVAL_REVERSED'::"DecisionCorrectionKind", 'SUBSCRIPTION_REJECTION_REVERSED'::"DecisionCorrectionKind"])) AND (subscription_request_id IS NOT NULL) AND (payment_submission_id IS NULL)) OR ((kind = ANY (ARRAY['PAYMENT_APPROVAL_REVERSED'::"DecisionCorrectionKind", 'PAYMENT_REJECTION_REVERSED'::"DecisionCorrectionKind"])) AND (payment_submission_id IS NOT NULL) AND (subscription_request_id IS NULL)))) |
 | `idempotency_records` | `idempotency_records_completed_check` | CHECK (((status <> 'COMPLETED'::"IdempotencyStatus") OR ((response_status IS NOT NULL) AND (completed_at IS NOT NULL)))) |
 | `idempotency_records` | `idempotency_records_response_status_check` | CHECK (((response_status IS NULL) OR ((response_status >= 100) AND (response_status <= 599)))) |
 | `idempotency_records` | `idempotency_records_valid_times_check` | CHECK ((expires_at > created_at)) |
@@ -636,6 +745,7 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `products` | `products_valid_price_check` | CHECK (((mrp_paise >= 0) AND (selling_price_paise >= 0) AND (selling_price_paise <= mrp_paise))) |
 | `refund_records` | `refund_records_amount_nonnegative_check` | CHECK ((amount_paise >= 0)) |
 | `stock_reservations` | `stock_reservations_valid_quantity_check` | CHECK ((quantity > 0)) |
+| `subscription_periods` | `subscription_periods_revocation_check` | CHECK ((((status = 'REVOKED'::"SubscriptionPeriodStatus") AND (revoked_at IS NOT NULL) AND (revocation_reason IS NOT NULL)) OR ((status <> 'REVOKED'::"SubscriptionPeriodStatus") AND (revoked_at IS NULL) AND (revocation_reason IS NULL)))) |
 | `subscription_periods` | `subscription_periods_valid_range_check` | CHECK ((ends_at > starts_at)) |
 | `subscription_plans` | `subscription_plans_duration_positive_check` | CHECK ((duration_days > 0)) |
 | `subscription_plans` | `subscription_plans_price_nonnegative_check` | CHECK ((price_paise >= 0)) |
@@ -646,8 +756,9 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 | `subscription_requests` | `subscription_requests_rejection_reason_check` | CHECK (((status <> 'REJECTED'::"SubscriptionRequestStatus") OR (rejection_reason IS NOT NULL))) |
 | `test_attempts` | `test_attempts_exactly_one_actor_check` | CHECK ((num_nonnulls(user_id, guest_token_hash) = 1)) |
 | `test_attempts` | `test_attempts_valid_time_and_number_check` | CHECK (((attempt_number > 0) AND (expires_at > started_at))) |
-| `test_version_sections` | `test_version_sections_valid_values_check` | CHECK (((sort_order >= 0) AND ((duration_seconds IS NULL) OR (duration_seconds > 0)))) |
 | `test_versions` | `test_versions_valid_duration_check` | CHECK (((duration_seconds > 0) AND ((attempt_limit IS NULL) OR (attempt_limit > 0)))) |
+| `test_version_sections` | `test_version_sections_subject_snapshot_check` | CHECK (((subject_name_snapshot IS NULL) OR (subject_id IS NOT NULL))) |
+| `test_version_sections` | `test_version_sections_valid_values_check` | CHECK (((sort_order >= 0) AND ((duration_seconds IS NULL) OR (duration_seconds > 0)))) |
 | `users` | `users_deactivation_check` | CHECK (((status <> 'DEACTIVATED'::"UserStatus") OR (deactivated_at IS NOT NULL))) |
 | `video_assets` | `video_assets_valid_dimensions_check` | CHECK ((((width IS NULL) OR (width > 0)) AND ((height IS NULL) OR (height > 0)))) |
 | `video_assets` | `video_assets_valid_size_and_version_check` | CHECK (((source_size_bytes > 0) AND (version_number > 0))) |
@@ -658,15 +769,41 @@ Generated from the catalog of a database migrated with `20261125070533_init` on 
 
 | Table | Trigger | When | Function |
 |---|---|---|---|
-| `payment_submissions` | `payment_submissions_decision_is_final` | BEFORE UPDATE OR DELETE, FOR EACH ROW | `guard_final_decision()` |
+| `audit_logs` | `audit_logs_append_only` | BEFORE DELETE OR UPDATE, FOR EACH ROW | `forbid_change()` |
+| `audit_logs` | `audit_logs_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
+| `decision_corrections` | `decision_corrections_append_only` | BEFORE DELETE OR UPDATE, FOR EACH ROW | `forbid_change()` |
+| `decision_corrections` | `decision_corrections_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
+| `decision_corrections` | `decision_corrections_validate` | BEFORE INSERT, FOR EACH ROW | `validate_decision_correction()` |
+| `payment_submissions` | `payment_submissions_decision_is_final` | BEFORE DELETE OR UPDATE, FOR EACH ROW | `guard_final_decision()` |
 | `payment_submissions` | `payment_submissions_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
-| `subscription_requests` | `subscription_requests_decision_is_final` | BEFORE UPDATE OR DELETE, FOR EACH ROW | `guard_final_decision()` |
+| `subscription_periods` | `subscription_periods_history_guard` | BEFORE DELETE OR UPDATE, FOR EACH ROW | `guard_subscription_period()` |
+| `subscription_periods` | `subscription_periods_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
+| `subscription_periods` | `subscription_periods_revocation_needs_correction` | AFTER UPDATE OF status, FOR EACH ROW, DEFERRABLE INITIALLY DEFERRED, WHEN (((new.status = 'REVOKED'::"SubscriptionPeriodStatus") AND (old.status <> 'REVOKED'::"SubscriptionPeriodStatus"))) | `require_correction_for_revocation()` |
+| `subscription_requests` | `subscription_requests_decision_is_final` | BEFORE DELETE OR UPDATE, FOR EACH ROW | `guard_final_decision()` |
 | `subscription_requests` | `subscription_requests_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
-| `test_version_questions` | `test_version_questions_frozen_after_publish` | BEFORE INSERT OR UPDATE OR DELETE, FOR EACH ROW | `guard_published_test_version_content()` |
+| `test_version_questions` | `test_version_questions_frozen_after_publish` | BEFORE INSERT OR DELETE OR UPDATE, FOR EACH ROW | `guard_published_test_version_content()` |
 | `test_version_questions` | `test_version_questions_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
-| `test_version_sections` | `test_version_sections_frozen_after_publish` | BEFORE INSERT OR UPDATE OR DELETE, FOR EACH ROW | `guard_published_test_version_content()` |
+| `test_version_sections` | `test_version_sections_frozen_after_publish` | BEFORE INSERT OR DELETE OR UPDATE, FOR EACH ROW | `guard_published_test_version_content()` |
 | `test_version_sections` | `test_version_sections_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
-| `test_versions` | `test_versions_immutable_after_publish` | BEFORE UPDATE OR DELETE, FOR EACH ROW | `guard_published_test_version()` |
+| `test_versions` | `test_versions_immutable_after_publish` | BEFORE DELETE OR UPDATE, FOR EACH ROW | `guard_published_test_version()` |
 | `test_versions` | `test_versions_no_truncate` | BEFORE TRUNCATE, FOR EACH STATEMENT | `forbid_truncate()` |
+| `test_versions` | `test_versions_snapshot_subjects_on_publish` | BEFORE UPDATE OF status, FOR EACH ROW, WHEN (((old.status = 'DRAFT'::"TestVersionStatus") AND (new.status <> 'DRAFT'::"TestVersionStatus"))) | `snapshot_section_subjects_on_publish()` |
+
+### Functions
+
+`forbid_change()`, `forbid_truncate()`, `guard_final_decision()`, `guard_published_test_version()`, `guard_published_test_version_content()`, `guard_subscription_period()`, `require_correction_for_revocation()`, `snapshot_section_subjects_on_publish()`, `validate_decision_correction()`
+
+### Runtime role privileges
+
+Every table is owned by `studyverse_migrator`. `studyverse_app` holds `SELECT, INSERT, UPDATE, DELETE` on every table except:
+
+| Table | Owner | `studyverse_app` privileges |
+|---|---|---|
+| `_prisma_migrations` | studyverse_migrator | none |
+| `audit_logs` | studyverse_migrator | SELECT, INSERT |
+| `decision_corrections` | studyverse_migrator | SELECT, INSERT |
+| `payment_submissions` | studyverse_migrator | SELECT, INSERT, UPDATE |
+| `subscription_periods` | studyverse_migrator | SELECT, INSERT, UPDATE |
+| `subscription_requests` | studyverse_migrator | SELECT, INSERT, UPDATE |
 
 <!-- generated:inventory:end -->
