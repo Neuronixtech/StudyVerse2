@@ -50,7 +50,17 @@ npm run db:migrate:dev       # local development databases only
 ## Migration policy
 
 - The initial migration was generated with `migrate dev --create-only --name init` (identical to `migrate diff --from-empty --to-schema`, apart from that command's `CREATE SCHEMA IF NOT EXISTS "public"` preamble). `extra-constraints.sql` is appended verbatim; `apps/api/src/database/migrations.spec.ts` checks the two copies stay identical.
-- **Every migration is wrapped in `BEGIN;` … `COMMIT;`.** Prisma doesn't make migrations transactional on PostgreSQL (tested on 18.7: a failing statement left the earlier ones applied). Wrapped, a failure leaves nothing behind; recover with `prisma migrate resolve --rolled-back <name>` and deploy the fixed migration. Statements that can't run in a transaction (for example `CREATE INDEX CONCURRENTLY`) go in a migration of their own, without the wrapper.
+- **Every migration is wrapped in `BEGIN;` … `COMMIT;`.** Prisma 7.10.1 doesn't guarantee that a migration runs in one transaction. Tested on PostgreSQL 18.7:
+  - a script without dollar-quoted bodies is sent one statement at a time, each committed on its own, so a failing statement leaves the earlier ones applied;
+  - a script with dollar-quoted bodies is sent as one message, which PostgreSQL runs as one implicit transaction.
+
+  Wrapped, a failure rolls back every statement either way. This was verified in a container with a deliberately broken copy of the initial migration (`design/docs/INITIAL_MIGRATION_REVIEW.md`, section 5). Statements that can't run in a transaction, for example `CREATE INDEX CONCURRENTLY`, go in a migration of their own, without the wrapper.
+- **When a wrapped migration fails**, `migrate deploy` exits 1, but its error is misleading:
+  - It reports `current transaction is aborted, commands ignored until end of transaction block` instead of the cause, and leaves `_prisma_migrations.logs` empty. That's because Prisma's own bookkeeping update runs on the same connection, which the failed transaction has left aborted.
+  - The cause is the `ERROR:` just before it in the PostgreSQL log. Alternatively, rerun the migration file with `psql -v ON_ERROR_STOP=1` against a disposable database.
+  - The schema is unchanged. `_prisma_migrations` keeps the attempt as failed, and further deploys are refused (`P3009`).
+
+  To recover, run `prisma migrate resolve --rolled-back <name>`, then deploy the fixed migration.
 - Once applied anywhere shared, a migration is never edited. Changes are new migrations. Hand-written rules (constraints, triggers) go into the new migration's SQL; `extra-constraints.sql` stays as the record of the initial migration's rules.
 - The app role's table access comes from the default privileges set by `infra/postgres/init/01-roles-and-databases.sh` in each database. A database created any other way must get the same `GRANT`/`ALTER DEFAULT PRIVILEGES` statements before the first deploy, or the API can't read its tables.
 - Every integration-test run empties the `_test` database and applies the committed migrations with `prisma migrate deploy` (`apps/api/test/setup/global-setup.ts`), then checks a second deploy is a no-op and the live schema has no drift.

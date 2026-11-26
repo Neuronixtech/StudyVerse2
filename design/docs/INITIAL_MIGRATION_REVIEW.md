@@ -3,7 +3,7 @@
 **Migration:** `prisma/migrations/20261125070533_init/migration.sql`
 **Status:** generated and tested on PostgreSQL 18.7, in the official container. **Not applied** to staging, production or any persistent database. Awaiting approval.
 **Branch:** `feature/backend-foundation`
-**Prepared:** 25 November 2026. **Updated:** 26 November 2026 (append-only audit logs, decision corrections, published subject labels, `_prisma_migrations` privileges, container verification)
+**Prepared:** 25 November 2026. **Updated:** 26 November 2026 (append-only audit logs, decision corrections, published subject labels, `_prisma_migrations` privileges, container verification, rollback verification)
 
 This document supports the approval of the initial database migration. It covers:
 
@@ -18,7 +18,7 @@ The inventory of database objects at the end is generated from PostgreSQL's cata
 
 | File | What it is |
 |---|---|
-| `prisma/migrations/20261125070533_init/migration.sql` | The complete migration (2,527 lines), wrapped in `BEGIN;` … `COMMIT;`. Part 1 is Prisma's generated DDL. Part 2 is `extra-constraints.sql`, verbatim |
+| `prisma/migrations/20261125070533_init/migration.sql` | The complete migration (2,530 lines), wrapped in `BEGIN;` … `COMMIT;`. Part 1 is Prisma's generated DDL. Part 2 is `extra-constraints.sql`, verbatim |
 | `prisma/migrations/migration_lock.toml` | Prisma's provider lock (`postgresql`) |
 | `prisma/extra-constraints.sql` | The hand-written rules, the source of Part 2 |
 | `prisma/schema.prisma` | The Prisma schema that Part 1 is generated from |
@@ -33,7 +33,12 @@ The inventory of database objects at the end is generated from PostgreSQL's cata
 
 The first version came from `prisma migrate dev --create-only --name init`, whose output is byte-identical to the diff without that preamble. Two checks keep the migration and its sources in sync: `npm run db:initial-migration -- --check`, and a unit test (`src/database/migrations.spec.ts`) that compares Part 2 with `extra-constraints.sql`. The script exists only until this migration is applied; after that, the migration is frozen.
 
-**Why `BEGIN`/`COMMIT`:** Prisma 7.10.1 doesn't make migrations transactional on PostgreSQL. On 18.7, a migration that failed part-way left its earlier statements applied and was recorded as failed. With the explicit transaction, a failure leaves the database untouched. To recover, run `prisma migrate resolve --rolled-back 20261125070533_init`, then deploy the fixed migration.
+**Why `BEGIN`/`COMMIT`:** Prisma 7.10.1 doesn't guarantee that a migration runs in one transaction. On PostgreSQL 18.7:
+
+- a script without dollar-quoted bodies was sent one statement at a time, each committed on its own, so a failure left the earlier statements applied;
+- a script with dollar-quoted bodies, like this one, went as a single message, which PostgreSQL runs as one implicit transaction.
+
+The explicit transaction makes a failure roll back every statement in both cases. When a wrapped migration fails, Prisma reports `current transaction is aborted` instead of the cause, which is in the PostgreSQL log. It also records the attempt as failed. To recover, run `prisma migrate resolve --rolled-back 20261125070533_init`, then deploy the fixed migration. All of this was verified in a disposable container (section 5, "Rollback verification").
 
 ## 2. Hand-written rules (Part 2)
 
@@ -167,7 +172,7 @@ All behaviour below was verified on **PostgreSQL 18.7**, by the suites in `apps/
 - The image's entrypoint ran `infra/postgres/init/01-roles-and-databases.sh` with its real `psql`.
 - The tests and the Prisma CLI ran on Node **22.23.5**, the official build, SHA-256 verified.
 
-(An earlier revision of this document reported results from PostgreSQL 18.7 binaries outside Docker, with a stand-in for `psql`, because Docker wasn't responding at the time. All the results below come from the container, except the one row marked otherwise.)
+(An earlier revision of this document reported results from PostgreSQL 18.7 binaries outside Docker, with a stand-in for `psql`, because Docker wasn't responding at the time. All the results below come from the container.)
 
 **Migration workflow in containers** (Compose `app` profile, with a fresh project and fresh generated passwords):
 
@@ -193,9 +198,55 @@ The first build attempt failed with `ECONNRESET` while `@prisma/engines` downloa
 | `npx prisma migrate status` | `Database schema is up to date!` |
 | `npx prisma migrate diff --from-config-datasource --to-schema ../../prisma/schema.prisma --script --exit-code` | Exit 0, `-- This is an empty migration.` (no drift) |
 | `npx prisma migrate dev --create-only` (shadow database `studyverse_shadow`, same image, an earlier throwaway Compose project) | Only an empty migration, so the history replayed in the shadow database matches the schema, `DO` block included. The empty migration was deleted |
-| A failing migration without, then with, `BEGIN`…`COMMIT` (scratch; run on 25 November on PostgreSQL 18.7 binaries outside Docker, not repeated in the container) | Without: earlier statements stayed applied. With: nothing was applied |
 
-**Test suites** at commit `9140c08` (Node 22.23.5, npm 10.9.9):
+**Rollback verification** (26 November 2026, at the migration committed in `e92be6d`).
+
+The test environment was a disposable `postgres:18.7-trixie` container with no named volume, removed afterwards:
+
+```bash
+docker run -d --rm --name sv-rollback-probe --env-file pg.env -p 127.0.0.1:55433:5432 \
+  -v "$PWD/infra/postgres/init:/docker-entrypoint-initdb.d:ro" postgres:18.7-trixie \
+  -c log_statement=all -c log_min_messages=notice \
+  -c "log_line_prefix=%m [%p] %u@%d vxid=%v xid=%x "
+```
+
+The init script ran through the image's entrypoint. Every run used `studyverse_migrator`, a role that isn't a superuser, against databases inside that container.
+
+The *broken migration* is a scratch copy of the committed migration with 12 lines added just before `COMMIT;`, and was never committed:
+
+- a `DO` block that reports which objects exist and `pg_current_xact_id_if_assigned()`. That function returns NULL under autocommit, and a transaction ID only if earlier statements of the same transaction already wrote;
+- then a deliberate failure: `CREATE TABLE "users" ("id" INTEGER);`.
+
+The error message itself proves that the earlier `CREATE TABLE "users"` had run.
+
+| Step | Result |
+|---|---|
+| `psql -h 127.0.0.1 -U studyverse_migrator -d final_psql -v ON_ERROR_STOP=1 --no-psqlrc -q -f broken.sql` | The server log shows one backend and one virtual transaction ID (`57/2`) for all 431 statements, starting with `BEGIN;`. The probe reported `69 public tables, 19 triggers, 9 functions exist; transaction id already assigned by earlier statements: 877`. Then `ERROR: relation "users" already exists`. No `COMMIT` was executed, and psql exited 3 |
+| Then, in `final_psql` | 0 tables, enums, functions, triggers, indexes or relations in `public`. `pg_xact_status(877)` = `aborted` |
+| `prisma migrate deploy` with the broken migration, on `final_prisma` | Prisma sent the script as one message. The probe reported 70 tables (Prisma's `_prisma_migrations` plus 69) and the same `ERROR: relation "users" already exists`. Prisma's next statement, `UPDATE "_prisma_migrations" SET "logs" = …`, failed with `current transaction is aborted`, and that is the error Prisma printed. Exit 1 |
+| Then, in `final_prisma` | Only `_prisma_migrations` remains: 0 enums, CHECKs, functions, triggers or partial indexes. Its row for the attempt is started, not finished, not rolled back, with `logs` empty. Prisma inserts that row in its own transaction before it runs the migration. The migration's transaction is `aborted` |
+| `prisma migrate deploy` again | `Error: P3009 migrate found failed migrations in the target database`, exit 1 |
+| `prisma migrate resolve --rolled-back 20261125070533_init` | `marked as rolled back`, exit 0 |
+| `prisma migrate deploy` with the committed migration | `All migrations have been successfully applied.`, exit 0. Result: 70 tables, 45 enums, 42 CHECKs, 9 functions, 19 triggers, 10 partial unique indexes. `_prisma_migrations` keeps the failed attempt (rolled back) and the successful one (finished) |
+| `prisma migrate status`, second deploy | `Database schema is up to date!`, `No pending migrations to apply.` |
+| A later migration on top, `20261126000000_followup_probe` (scratch: `BEGIN; CREATE TABLE …; COMMIT;`) | Applied, and `migrate status` is up to date |
+| An earlier run of the same sequence on the init-created `studyverse` database. It used the migration before `e92be6d`, which differs only in its header comment | Same results. The app role ended with no access to `_prisma_migrations`, and `SELECT, INSERT` on `audit_logs` |
+
+**Comparisons, on scratch databases in the same container:**
+
+| Script | How Prisma sent it | Result |
+|---|---|---|
+| The broken migration **without** `BEGIN`/`COMMIT` | One message | Also rolled back, by the implicit transaction. Prisma reported the cause (`P3018`, `42P07 relation "users" already exists`) and stored it in `logs` |
+| `CREATE TABLE "probe_before_error" …; SELECT 1/0;` | Two statements, two transactions | The table stayed after the failure |
+| The same, with a `DO $$ … $$` block between them | One message | Nothing stayed |
+| The same two statements wrapped in `BEGIN`/`COMMIT` | Four statements, one transaction | Nothing stayed. Exit 1, with the misleading `current transaction is aborted` |
+
+What this shows:
+
+- **Atomicity.** Without the wrapper, whether a migration is atomic depends on how Prisma happens to send its script. With the wrapper, it always is.
+- **The trade-off.** A wrapped failure is reported misleadingly. The operator reads the cause from the PostgreSQL log, as described in `prisma/README.md` ("Migration policy").
+
+**Test suites** at commit `9140c08` (Node 22.23.5, npm 10.9.9). The integration and unit suites were re-run on the regenerated migration at `e92be6d`, and the counts were the same:
 
 | Command | Result |
 |---|---|
@@ -241,7 +292,7 @@ Run on real containers with Docker Desktop, using the Compose stack in `infra/co
 6. **The database enforces deactivation only for history.** Refusing sign-in, revoking sessions and invalidating tokens are Milestone 2 requirements (listed in `prisma/README.md`).
 7. **Personal-data retention is deferred.** Deactivation isn't deletion. A retention and deletion policy is required before production. Nothing deletes or anonymizes data automatically.
 8. **Test titles aren't snapshotted.** Subject names on published sections are. Renaming a test changes how its past attempts are labelled; their content, sections and subject labels don't change.
-9. **Every future migration must include `BEGIN`/`COMMIT`.** The convention is documented, but a test checks it for the initial migration only.
+9. **Every future migration must include `BEGIN`/`COMMIT`.** The convention is documented, but a test checks it for the initial migration only. When a wrapped migration fails, Prisma reports `current transaction is aborted` instead of the cause. Operators read the cause from the PostgreSQL log (`prisma/README.md`, "Migration policy").
 10. **Return requests aren't write-once.** Deleting one would set `refund_records.return_request_id` to NULL. Deferred to the bookstore milestone, where return workflows are designed.
 11. **Node 22 reaches end of life on 30 April 2027.** Plan the move to Node 24 before production.
 12. **The `app` Compose profile migrates the local `studyverse` database.** Don't run it against data you want to keep until this migration is approved.
