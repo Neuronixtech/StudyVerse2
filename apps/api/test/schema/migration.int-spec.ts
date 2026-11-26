@@ -84,7 +84,7 @@ describe("initial migration on PostgreSQL", () => {
        WHERE n.nspname = 'public' AND k.contype = 'c' ORDER BY 1`,
     );
     expect(rows.map((r) => r.conname)).toEqual(expected);
-    expect(expected).toHaveLength(37);
+    expect(expected).toHaveLength(38);
   });
 
   it("creates every trigger and function named in extra-constraints.sql", async () => {

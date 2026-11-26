@@ -177,6 +177,11 @@ ALTER TABLE "attempt_section_states"
   ADD CONSTRAINT "attempt_section_states_valid_state_check"
   CHECK ("elapsed_ms" >= 0 AND NOT ("locked_at" IS NOT NULL AND "active_since" IS NOT NULL));
 
+-- A subject-name snapshot only exists for a section that has a subject.
+ALTER TABLE "test_version_sections"
+  ADD CONSTRAINT "test_version_sections_subject_snapshot_check"
+  CHECK ("subject_name_snapshot" IS NULL OR "subject_id" IS NOT NULL);
+
 CREATE UNIQUE INDEX "attempt_section_states_one_active_per_attempt"
   ON "attempt_section_states" ("attempt_id")
   WHERE "active_since" IS NOT NULL;
@@ -286,6 +291,28 @@ CREATE TRIGGER "test_version_sections_frozen_after_publish"
 CREATE TRIGGER "test_version_questions_frozen_after_publish"
   BEFORE INSERT OR UPDATE OR DELETE ON "test_version_questions"
   FOR EACH ROW EXECUTE FUNCTION "guard_published_test_version_content"();
+
+-- Publication snapshots each section's subject name, so renaming a subject later
+-- never relabels a published test (sections are frozen from then on). Runs BEFORE the
+-- status change is written, while the version is still a DRAFT, so the section guard
+-- above allows these updates. Drafts keep the snapshot NULL and show the current name.
+CREATE FUNCTION "snapshot_section_subjects_on_publish"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE "test_version_sections" AS s
+     SET "subject_name_snapshot" = sub."name"
+    FROM "subjects" AS sub
+   WHERE s."test_version_id" = NEW."id"
+     AND sub."id" = s."subject_id";
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "test_versions_snapshot_subjects_on_publish"
+  BEFORE UPDATE OF "status" ON "test_versions"
+  FOR EACH ROW
+  WHEN (OLD."status" = 'DRAFT' AND NEW."status" <> 'DRAFT')
+  EXECUTE FUNCTION "snapshot_section_subjects_on_publish"();
 
 -- Payment and subscription decisions are final, and the evidence is never deleted.
 -- payment_submissions also holds the admin's decision (the architecture's separate
