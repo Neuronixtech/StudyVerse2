@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "blob-report/**",
     "reports/**",
+    // The backend API is a separate package with its own lint setup.
+    "apps/**",
   ]),
 ]);
 

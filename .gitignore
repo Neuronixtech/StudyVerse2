@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# dependencies (any depth: the root app and apps/api each have their own)
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -35,8 +35,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files hold secrets and are never committed; .env.example templates are the exception
 .env*
+!.env.example
+
+# backend API (apps/api): build output, coverage and the generated Prisma client
+/apps/api/dist/
+/apps/api/coverage/
+/apps/api/src/generated/
 
 # vercel
 .vercel

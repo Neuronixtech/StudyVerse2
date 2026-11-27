@@ -1,0 +1,150 @@
+# Backend quality gate for apps/api (Backend_architecture.md §17.2, Milestone 1).
+# Every PR and push to main/develop:
+#  - api: install from the lockfile, lint, format, type-check, validate the Prisma schema,
+#    unit/HTTP tests, integration tests against PostgreSQL 18.7 (which apply the committed
+#    migrations and test the database rules), build.
+#  - container: build the API images and run the Compose stack (PostgreSQL, migrations,
+#    API) as local development does; check health, the non-root user, that no env files
+#    are in the image, and graceful shutdown.
+name: Backend tests
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (lint, types, schema, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:18.7-trixie
+        env:
+          # Superuser of this job's throwaway container only.
+          POSTGRES_PASSWORD: postgres
+          TZ: UTC
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Same version as local development and the container image (apps/api/.nvmrc).
+          node-version-file: apps/api/.nvmrc
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies (also generates the Prisma client)
+        run: npm ci
+
+      - name: Generate throwaway role passwords
+        run: |
+          for name in STUDYVERSE_MIGRATOR_PASSWORD STUDYVERSE_APP_PASSWORD; do
+            value="$(openssl rand -hex 24)"
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Create roles and databases (infra/postgres/init)
+        working-directory: .
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGPASSWORD: postgres
+          POSTGRES_USER: postgres
+        run: |
+          bash infra/postgres/init/01-roles-and-databases.sh
+          {
+            echo "TEST_DATABASE_URL=postgresql://studyverse_app:${STUDYVERSE_APP_PASSWORD}@localhost:5432/studyverse_test"
+            echo "TEST_DATABASE_MIGRATION_URL=postgresql://studyverse_migrator:${STUDYVERSE_MIGRATOR_PASSWORD}@localhost:5432/studyverse_test"
+          } >> "$GITHUB_ENV"
+
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+
+      - name: Validate the Prisma schema
+        run: npm run db:validate
+
+      - name: Unit and HTTP tests (includes the OpenAPI contract check)
+        run: npm test
+
+      - name: Integration tests (PostgreSQL 18.7; applies the committed migrations first)
+        run: npm run test:integration
+
+      - run: npm run build
+
+  container:
+    name: API container (Compose, migrations, health, shutdown)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE: docker compose -f infra/compose.yaml --profile app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write infra/.env with throwaway passwords
+        run: |
+          umask 077
+          {
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+            echo "STUDYVERSE_MIGRATOR_PASSWORD=$(openssl rand -hex 24)"
+            echo "STUDYVERSE_APP_PASSWORD=$(openssl rand -hex 24)"
+          } > infra/.env
+
+      - name: Build the images; start PostgreSQL, the migration job and the API
+        run: $COMPOSE up --build --detach --wait --wait-timeout 240 api
+
+      - name: Health checks and container user
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:3001/api/v1/health/live
+          curl --fail --silent --show-error http://127.0.0.1:3001/api/v1/health/ready
+          api="$($COMPOSE ps -q api)"
+          test "$(docker inspect --format '{{.State.Health.Status}}' "$api")" = healthy
+          test "$(docker inspect --format '{{.Config.User}}' "$api")" = node
+
+      - name: The migration job ran once and succeeded
+        run: |
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$($COMPOSE ps -aq migrate)")" = 0
+          test "$($COMPOSE exec -T postgres psql -U postgres -d studyverse -tAc \
+            'SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')" = 1
+
+      - name: No env files or database credentials in the image
+        run: |
+          test -z "$(docker run --rm --entrypoint sh studyverse-api -c 'find / -xdev -name ".env*" -not -path "*/node_modules/*" 2>/dev/null')"
+          ! docker image inspect --format '{{json .Config.Env}}' studyverse-api | grep -E 'DATABASE_URL|PASSWORD'
+
+      - name: Graceful shutdown (exit code 0 on docker stop)
+        run: |
+          api="$($COMPOSE ps -q api)"
+          $COMPOSE stop --timeout 15 api
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$api")" = 0
+
+      - name: Logs
+        if: always()
+        run: $COMPOSE logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: $COMPOSE down --volumes

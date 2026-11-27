@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "typescript/no-extraneous-class": ["warn", { "allowWithDecorator": true }],
+    "typescript/no-unsafe-class-instance-assignment": "off"
+  },
+  "ignorePatterns": ["dist/**", "coverage/**", "src/generated/**"]
+}
